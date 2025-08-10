@@ -1,0 +1,54 @@
+{
+  "tax_year": "2024-25",
+  "marginal_tax_rates": [
+    {
+      "min_income": 0,
+      "max_income": 18200,
+      "rate": 0.0,
+      "base_tax": 0
+    },
+    {
+      "min_income": 18201,
+      "max_income": 45000,
+      "rate": 0.16,
+      "base_tax": 0
+    },
+    {
+      "min_income": 45001,
+      "max_income": 135000,
+      "rate": 0.30,
+      "base_tax": 4292
+    },
+    {
+      "min_income": 135001,
+      "max_income": 190000,
+      "rate": 0.37,
+      "base_tax": 37392
+    },
+    {
+      "min_income": 190001,
+      "max_income": null,
+      "rate": 0.45,
+      "base_tax": 57692
+    }
+  ],
+  "medicare_levy": {
+    "rate": 0.02,
+    "low_income_threshold": 24000,
+    "phase_in_range": 3000
+  },
+  "medicare_levy_surcharge": {
+    "private_health_exempt": true,
+    "tiers": [
+      { "min_income": 0, "max_income": 93000, "rate": 0.0 },
+      { "min_income": 93001, "max_income": 108000, "rate": 0.01 },
+      { "min_income": 108001, "max_income": 144000, "rate": 0.0125 },
+      { "min_income": 144001, "max_income": null, "rate": 0.015 }
+    ]
+  },
+  "assumptions": {
+    "include_LITO": false,
+    "multiple_incomes_supported": false,
+    "default_private_health": true
+  }
+}

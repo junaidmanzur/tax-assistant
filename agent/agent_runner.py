@@ -21,19 +21,19 @@ tools = [calculate_tax]
 agent = create_react_agent(model, tools, checkpointer=memory)
 
 # Use the agent
-config = {"configurable": {"thread_id": "abc123"}}
+# config = {"configurable": {"thread_id": "abc123"}}
 
-system_message =  {
-    "role": "system", 
-    "content": "You are an Australian tax assistant. Always use the calculate_tax tool."
-}
+# system_message =  {
+#     "role": "system", 
+#     "content": "You are an Australian tax assistant. Always use the calculate_tax tool."
+# }
 
 
-input_message = {
-    "role": "user",
-    "content": "I earn 120,000 + super before tax and have private health insurance. How much tax do I owe for the 2024 financial year?",
-}
-for step in agent.stream(
-    {"messages": [system_message, input_message]}, config, stream_mode="values"
-):
-    step["messages"][-1].pretty_print()
+# input_message = {
+#     "role": "user",
+#     "content": "I earn 120,000 + super before tax and have private health insurance. How much tax do I owe for the 2024 financial year?",
+# }
+# for step in agent.stream(
+#     {"messages": [system_message, input_message]}, config, stream_mode="values"
+# ):
+#     step["messages"][-1].pretty_print()
