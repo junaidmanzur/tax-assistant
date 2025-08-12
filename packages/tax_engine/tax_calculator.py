@@ -2,7 +2,7 @@
 from __future__ import annotations
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 
 def load_tax_rules(tax_year: int, rules_dir: str | Path = "../tax_rules") -> Dict[str, Any]:
     """
@@ -47,23 +47,75 @@ def calculate_medicare_levy(income: float, medicare_cfg: Dict[str, Any]) -> floa
     rate = float(medicare_cfg.get("rate", 0.02))
     return max(0.0, income * rate)
 
-def calculate_mls(income: float, has_private_health: bool, mls_cfg: Optional[Dict[str, Any]]) -> float:
+def get_mls_rate_single(income: float, rules: Dict[str, Any]) -> float:
+    """Get MLS rate for single taxpayer."""
+    mls_cfg = rules.get("medicare_levy_surcharge", {})
+    tiers = mls_cfg.get("single_tiers", mls_cfg.get("tiers", []))
+    
+    for tier in sorted(tiers, key=lambda x: float(x["min_income"])):
+        t_min = float(tier["min_income"])
+        t_max = float(tier["max_income"]) if tier.get("max_income") is not None else float("inf")
+        if t_min <= income <= t_max:
+            return float(tier.get("rate", 0.0))
+    return 0.0
+
+def get_mls_rate_family(combined_income: float, dependents: int, rules: Dict[str, Any]) -> float:
+    """Get MLS rate for family taxpayer with dependent child uplift."""
+    mls_cfg = rules.get("medicare_levy_surcharge", {})
+    family_tiers = mls_cfg.get("family_tiers", [])
+    child_increment = float(mls_cfg.get("family_dependent_child_increment", 1500))
+    
+    # Calculate uplift: $1,500 per dependent child after the first
+    uplift = max(dependents - 1, 0) * child_increment
+    
+    for tier in sorted(family_tiers, key=lambda x: float(x["min_income"])):
+        t_min = float(tier["min_income"]) + uplift
+        t_max_raw = tier.get("max_income")
+        t_max = float(t_max_raw) + uplift if t_max_raw is not None else float("inf")
+        
+        if t_min <= combined_income <= t_max:
+            return float(tier.get("rate", 0.0))
+    return 0.0
+
+def calculate_mls_base(income_for_mls: float, rate: float) -> float:
+    """Calculate MLS amount based on income and rate."""
+    return max(0.0, income_for_mls * rate)
+
+def calculate_mls(
+    income: float,
+    has_private_health: bool,
+    mls_cfg: Optional[Dict[str, Any]],
+    filing_status: Literal["single", "family"] = "single",
+    num_dependent_children: int = 0,
+    combined_family_income_for_mls: Optional[float] = None
+) -> float:
+    """Calculate Medicare Levy Surcharge for single or family taxpayers."""
     if not mls_cfg:
         return 0.0
     if has_private_health and mls_cfg.get("private_health_exempt", True):
         return 0.0
-    for tier in sorted(mls_cfg.get("tiers", []), key=lambda x: float(x["min_income"])):
-        t_min = float(tier["min_income"])
-        t_max = float(tier["max_income"]) if tier.get("max_income") is not None else float("inf")
-        if t_min <= income <= t_max:
-            return income * float(tier.get("rate", 0.0))
-    return 0.0
+    
+    if filing_status == "single":
+        rate = get_mls_rate_single(income, {"medicare_levy_surcharge": mls_cfg})
+        return calculate_mls_base(income, rate)
+    else:  # family
+        if combined_family_income_for_mls is None:
+            combined_family_income_for_mls = income
+        rate = get_mls_rate_family(
+            combined_family_income_for_mls, 
+            num_dependent_children, 
+            {"medicare_levy_surcharge": mls_cfg}
+        )
+        return calculate_mls_base(income, rate)
 
 def calculate_tax(
     income: float,
     has_private_health: bool,
     tax_year: int = 2024,
     rules_dir: str | Path = "../tax_rules",
+    filing_status: Literal["single", "family"] = "single",
+    num_dependent_children: int = 0,
+    combined_family_income_for_mls: Optional[float] = None,
 ) -> Dict[str, float]:
     """
     Calculate Australian individual income tax for the given year by loading
@@ -73,7 +125,14 @@ def calculate_tax(
     rules = load_tax_rules(tax_year, rules_dir)
     base_tax = calculate_income_tax(income, rules["marginal_tax_rates"])
     medicare_levy = calculate_medicare_levy(income, rules["medicare_levy"])
-    mls = calculate_mls(income, has_private_health, rules.get("medicare_levy_surcharge"))
+    mls = calculate_mls(
+        income, 
+        has_private_health, 
+        rules.get("medicare_levy_surcharge"),
+        filing_status,
+        num_dependent_children,
+        combined_family_income_for_mls
+    )
     total_tax = round(base_tax + medicare_levy + mls, 2)
     return {
         "base_tax": round(base_tax, 2),

@@ -6,7 +6,7 @@ interface Msg { sender: Sender; text: string; }
 
 export default function ChatPanel() {
   const [messages, setMessages] = useState<Msg[]>([
-    { sender: 'ai', text: 'Hi, I\'m your AI Tax Assistant. I can calculate your exact annual tax. Please tell me your taxable income for this year.' },
+    { sender: 'ai', text: 'Hi! I\'ll help you calculate your Australian income tax. Do you have your income information ready for a tax calculation?' },
   ]);
 
   const [draft, setDraft] = useState('');

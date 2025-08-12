@@ -39,6 +39,19 @@
   },
   "medicare_levy_surcharge": {
     "private_health_exempt": true,
+    "single_tiers": [
+      { "min_income": 0, "max_income": 97000, "rate": 0.0 },
+      { "min_income": 97001, "max_income": 113000, "rate": 0.01 },
+      { "min_income": 113001, "max_income": 151000, "rate": 0.0125 },
+      { "min_income": 151001, "max_income": null, "rate": 0.015 }
+    ],
+    "family_tiers": [
+      { "min_income": 0, "max_income": 194000, "rate": 0.0 },
+      { "min_income": 194001, "max_income": 226000, "rate": 0.01 },
+      { "min_income": 226001, "max_income": 302000, "rate": 0.0125 },
+      { "min_income": 302001, "max_income": null, "rate": 0.015 }
+    ],
+    "family_dependent_child_increment": 1500,
     "tiers": [
       { "min_income": 0, "max_income": 97000, "rate": 0.0 },
       { "min_income": 97001, "max_income": 113000, "rate": 0.01 },
