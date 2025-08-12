@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from services.agent.agent_runner import agent
 from services.api_gateway.models import ChatRequest
 
-app = FastAPI(title="Tax Agent API", description="A FastAPI application for a tax agent")
+app = FastAPI(title="Tax Assistant API", description="A FastAPI application for a tax assistant")
 
 # Add CORS middleware
 app.add_middleware(
