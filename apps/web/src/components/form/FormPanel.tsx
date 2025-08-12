@@ -3,7 +3,7 @@ import Field from '@/components/common/Field';
 import Button from '@/components/common/Button';
 import { parseIncome } from '@/lib/parse';
 import { currency } from '@/lib/format';
-import type { TaxYear, TaxResponse, FilingStatus } from '@/types/tax';
+import type { TaxYear, FilingStatus } from '@/types/tax';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
