@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/chat/chatpanel.tsx","./src/components/chat/messagebubble.tsx","./src/components/common/button.tsx","./src/components/common/field.tsx","./src/components/form/formpanel.tsx","./src/lib/format.ts","./src/lib/parse.ts","./src/types/tax.ts"],"errors":true,"version":"5.9.2"}
