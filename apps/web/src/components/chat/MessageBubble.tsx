@@ -2,10 +2,34 @@ import { ReactNode } from 'react';
 
 export type Sender = 'ai' | 'me' | 'sys' | 'loading';
 
+// Helper function to render simple markdown formatting
+function renderFormattedText(text: string): ReactNode {
+  // Split by lines first
+  const lines = text.split('\n');
+  
+  return lines.map((line, index) => {
+    if (!line.trim()) {
+      return <br key={index} />;
+    }
+    
+    // Process inline formatting
+    let processedLine = line
+      // Bold text **text** 
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Bullet points
+      .replace(/^• (.*)/, '&nbsp;&nbsp;• $1');
+    
+    return (
+      <div key={index} dangerouslySetInnerHTML={{ __html: processedLine }} />
+    );
+  });
+}
+
 export default function MessageBubble({ sender, children }: { sender: Sender; children: ReactNode }) {
   const isMe = sender === 'me';
   const isSys = sender === 'sys';
   const isLoading = sender === 'loading';
+  const isAi = sender === 'ai';
   
   return (
     <div className={`flex gap-2.5 my-2 ${isMe ? 'justify-start' : ''}`}>
@@ -21,7 +45,7 @@ export default function MessageBubble({ sender, children }: { sender: Sender; ch
             </div>
           </div>
         ) : (
-          children
+          isAi && typeof children === 'string' ? renderFormattedText(children) : children
         )}
       </div>
     </div>

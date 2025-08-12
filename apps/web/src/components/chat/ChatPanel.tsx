@@ -2,6 +2,53 @@ import { FormEvent, useState, useRef } from 'react';
 import MessageBubble, { Sender } from './MessageBubble';
 import { ChatMessage, ChatRequest } from '@/types/tax';
 
+// Helper function to format tax calculation results
+function formatTaxResponse(text: string): string {
+  // Check if the response contains tax calculation results
+  const hasBaseRate = /base.tax/i.test(text);
+  const hasMedicareLevy = /medicare.levy/i.test(text);
+  const hasTotalTax = /total.tax/i.test(text);
+  
+  if (hasBaseRate && hasMedicareLevy && hasTotalTax) {
+    // Extract numbers for formatting
+    const baseMatch = text.match(/base.tax[:\s]*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
+    const medicareMatch = text.match(/medicare.levy[:\s]*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
+    const mlsMatch = text.match(/(?:mls|medicare.levy.surcharge)[:\s]*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
+    const totalMatch = text.match(/total.tax[:\s]*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
+    const takeHomeMatch = text.match(/take.home[:\s]*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
+    
+    if (baseMatch && medicareMatch && totalMatch) {
+      const base = parseFloat(baseMatch[1].replace(/,/g, ''));
+      const medicare = parseFloat(medicareMatch[1].replace(/,/g, ''));
+      const mls = mlsMatch ? parseFloat(mlsMatch[1].replace(/,/g, '')) : 0;
+      const total = parseFloat(totalMatch[1].replace(/,/g, ''));
+      const takeHome = takeHomeMatch ? parseFloat(takeHomeMatch[1].replace(/,/g, '')) : null;
+      
+      // Format with elegant structure
+      let formatted = `**🧮 Tax Calculation Results (2024-25)**\n\n`;
+      formatted += `**💰 Your Tax Breakdown:**\n`;
+      formatted += `• Base Income Tax: $${base.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+      formatted += `• Medicare Levy: $${medicare.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+      formatted += `• Medicare Levy Surcharge: $${mls.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+      formatted += `• **Total Tax: $${total.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**\n\n`;
+      
+      if (takeHome) {
+        formatted += `**💵 Take-Home Pay: $${takeHome.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**\n\n`;
+      }
+      
+      // Extract any explanation about MLS
+      const mlsExplanation = text.match(/(?:mls|medicare.levy.surcharge).*?(?:\n\n|$)/is);
+      if (mlsExplanation) {
+        formatted += `**📋 MLS Details:**\n${mlsExplanation[0].trim()}\n`;
+      }
+      
+      return formatted;
+    }
+  }
+  
+  return text;
+}
+
 interface Msg { sender: Sender; text: string; }
 
 export default function ChatPanel() {
@@ -98,7 +145,8 @@ export default function ChatPanel() {
                   } else if (currentEvent === 'done') {
                     setMessages((m) => {
                       const withoutLoading = m.filter(msg => msg.sender !== 'loading');
-                      return [...withoutLoading, { sender: 'ai', text: aiResponse || 'I\'m ready to help with your tax calculation!' }];
+                      const formattedResponse = formatTaxResponse(aiResponse || 'I\'m ready to help with your tax calculation!');
+                      return [...withoutLoading, { sender: 'ai', text: formattedResponse }];
                     });
                     setIsLoading(false);
                     return;
@@ -139,7 +187,9 @@ export default function ChatPanel() {
     <section className="panel grid grid-rows-chat h-[72vh] min-h-[560px]" aria-label="Conversation panel">
       <div className="overflow-auto p-4" id="chat">
         {messages.map((m, i) => (
-          <MessageBubble key={i} sender={m.sender}>{m.text.split('\n').map((line, idx) => <div key={idx}>{line}</div>)}</MessageBubble>
+          <MessageBubble key={i} sender={m.sender}>
+            {m.sender === 'ai' ? m.text : m.text.split('\n').map((line, idx) => <div key={idx}>{line}</div>)}
+          </MessageBubble>
         ))}
       </div>
       <form onSubmit={onSend} className="flex gap-2.5 p-2.5 border-t border-border">
