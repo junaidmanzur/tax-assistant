@@ -2,8 +2,22 @@ import { useState } from 'react';
 import ChatPanel from '@/components/chat/ChatPanel';
 import FormPanel from '@/components/form/FormPanel';
 
+interface TaxCalculation {
+  income: number;
+  baseTax: number;
+  medicareLevy: number;
+  mls: number;
+  totalTax: number;
+  takeHome: number;
+  filingStatus: 'single' | 'family';
+  combinedFamilyIncome?: number;
+  numChildren?: number;
+  hasPrivateHealth: boolean;
+}
+
 export default function App() {
   const [activePanel, setActivePanel] = useState<'chat' | 'form'>('chat');
+  const [lastTaxCalculation, setLastTaxCalculation] = useState<TaxCalculation | null>(null);
 
   return (
     <div className="min-h-screen">
@@ -45,13 +59,17 @@ export default function App() {
       <main className="max-w-[1200px] mx-auto p-4">
         {/* Desktop: Side-by-side layout */}
         <div className="hidden md:grid md:grid-cols-[1.4fr_1fr] gap-4">
-          <ChatPanel />
-          <FormPanel />
+          <ChatPanel onTaxCalculation={setLastTaxCalculation} />
+          <FormPanel syncedCalculation={lastTaxCalculation} />
         </div>
 
         {/* Mobile: Toggled single panel */}
         <div className="md:hidden">
-          {activePanel === 'chat' ? <ChatPanel /> : <FormPanel />}
+          {activePanel === 'chat' ? (
+            <ChatPanel onTaxCalculation={setLastTaxCalculation} />
+          ) : (
+            <FormPanel syncedCalculation={lastTaxCalculation} />
+          )}
         </div>
       </main>
 

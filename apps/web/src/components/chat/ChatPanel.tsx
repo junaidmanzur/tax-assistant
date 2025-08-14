@@ -65,6 +65,29 @@ interface Msg {
   taxResult?: TaxResult;
 }
 
+// Helper function to filter out tax calculation lines from text
+function filterTaxCalculationLines(text: string): string {
+  // Remove lines that contain tax calculation results
+  const lines = text.split('\n');
+  const filteredLines = lines.filter(line => {
+    // Keep lines that don't match tax calculation patterns
+    return !(
+      /\*\*Base Tax\*\*:\s*\$/.test(line) ||
+      /\*\*Medicare Levy\*\*:\s*\$/.test(line) ||
+      /\*\*Medicare Levy Surcharge.*?\*\*:\s*\$/.test(line) ||
+      /\*\*Total Tax Payable\*\*:\s*\$/.test(line) ||
+      /\*\*Take-Home Income\*\*:\s*\$/.test(line) ||
+      /\d+\.\s*\*\*Base Tax\*\*:\s*\$/.test(line) ||
+      /\d+\.\s*\*\*Medicare Levy\*\*:\s*\$/.test(line) ||
+      /\d+\.\s*\*\*Medicare Levy Surcharge.*?\*\*:\s*\$/.test(line) ||
+      /\d+\.\s*\*\*Total Tax Payable\*\*:\s*\$/.test(line) ||
+      /\d+\.\s*\*\*Take-Home Income\*\*:\s*\$/.test(line)
+    );
+  });
+  
+  return filteredLines.join('\n').trim();
+}
+
 // Helper function to extract tax results from response
 function extractTaxResults(text: string): TaxResult | null {
   
@@ -107,9 +130,26 @@ function extractTaxResults(text: string): TaxResult | null {
   return null;
 }
 
-export default function ChatPanel() {
+interface TaxCalculation {
+  income: number;
+  baseTax: number;
+  medicareLevy: number;
+  mls: number;
+  totalTax: number;
+  takeHome: number;
+  filingStatus: 'single' | 'family';
+  combinedFamilyIncome?: number;
+  numChildren?: number;
+  hasPrivateHealth: boolean;
+}
+
+interface ChatPanelProps {
+  onTaxCalculation?: (calculation: TaxCalculation) => void;
+}
+
+export default function ChatPanel({ onTaxCalculation }: ChatPanelProps) {
   const [messages, setMessages] = useState<Msg[]>([
-    { sender: 'ai', text: 'Hi! I\'ll help you calculate your Australian income tax. Do you have your income information ready for a tax calculation?' },
+    { sender: 'ai', text: '👋 **Quick Tax Calculator**\n\nJust tell me your income and I\'ll calculate your 2024-25 Australian tax!\n\n**Examples:**\n• "85,000 salary"\n• "120k, married, 2 kids, family income 200k"\n• "95000, single, no private health"\n\n**What\'s your situation?**' },
   ]);
 
   const [draft, setDraft] = useState('');
@@ -205,6 +245,56 @@ export default function ChatPanel() {
                       let taxResult = extractTaxResults(response);
                       const formattedResponse = formatTaxResponse(response);
                       
+                      // If tax results are extracted, notify parent component for FormPanel sync
+                      if (taxResult && onTaxCalculation) {
+                        // Extract additional info from the entire conversation history
+                        const allMessages = [...withoutLoading, { sender: 'ai', text: response }];
+                        const conversationText = allMessages.map(msg => msg.text).join(' ');
+                        
+                        // Check for family status
+                        const hasFamilyKeyword = /family|married|spouse|partner|kids?|children/i.test(conversationText);
+                        
+                        // Extract combined family income
+                        let combinedFamilyIncome: number | undefined;
+                        const familyIncomeMatch = conversationText.match(/(?:family.*income|combined.*income)[:\s]*(?:\$)?([0-9,]+(?:k|000)?)/i);
+                        const totalIncomeMatch = conversationText.match(/(?:total.*income|earn.*total)[:\s]*(?:\$)?([0-9,]+(?:k|000)?)/i);
+                        
+                        if (familyIncomeMatch) {
+                          const incomeStr = familyIncomeMatch[1].replace(/,/g, '');
+                          combinedFamilyIncome = incomeStr.includes('k') ? 
+                            parseFloat(incomeStr.replace('k', '')) * 1000 : 
+                            parseFloat(incomeStr);
+                        } else if (totalIncomeMatch) {
+                          const incomeStr = totalIncomeMatch[1].replace(/,/g, '');
+                          combinedFamilyIncome = incomeStr.includes('k') ? 
+                            parseFloat(incomeStr.replace('k', '')) * 1000 : 
+                            parseFloat(incomeStr);
+                        }
+                        
+                        // Extract number of children
+                        let numChildren = 0;
+                        const childrenMatch = conversationText.match(/(\d+)\s*(?:kids?|children|child)/i);
+                        if (childrenMatch) {
+                          numChildren = parseInt(childrenMatch[1]);
+                        }
+                        
+                        // Extract private health status
+                        const hasPrivateHealthKeyword = /private.*health|health.*insurance/i.test(conversationText);
+                        const hasPrivateHealth = hasPrivateHealthKeyword && !/no.*private|without.*private/i.test(conversationText);
+                        
+                        onTaxCalculation({
+                          income: taxResult.income,
+                          baseTax: taxResult.baseTax,
+                          medicareLevy: taxResult.medicareLevy,
+                          mls: taxResult.mls,
+                          totalTax: taxResult.totalTax,
+                          takeHome: taxResult.takeHome,
+                          filingStatus: hasFamilyKeyword ? 'family' : 'single',
+                          combinedFamilyIncome,
+                          numChildren,
+                          hasPrivateHealth,
+                        });
+                      }
                       
                       return [...withoutLoading, { 
                         sender: 'ai', 
@@ -252,19 +342,28 @@ export default function ChatPanel() {
       <div className="overflow-auto p-4" id="chat">
         {messages.map((m, i) => (
           <div key={i}>
-            {m.taxResult ? (
-              // Show only the card when tax results are available
-              <div className="flex gap-2.5 my-2">
-                <div className="w-7 h-7 rounded-full bg-chip flex-none" aria-hidden="true" />
-                <TaxResultCard
-                  baseTax={m.taxResult.baseTax}
-                  medicareLevy={m.taxResult.medicareLevy}
-                  mls={m.taxResult.mls}
-                  totalTax={m.taxResult.totalTax}
-                  takeHome={m.taxResult.takeHome}
-                  income={m.taxResult.income}
-                />
-              </div>
+{m.taxResult ? (
+              // Show both card and explanation text when tax results are available
+              <>
+                <div className="flex gap-2.5 my-2">
+                  <div className="w-7 h-7 rounded-full bg-chip flex-none" aria-hidden="true" />
+                  <TaxResultCard
+                    baseTax={m.taxResult.baseTax}
+                    medicareLevy={m.taxResult.medicareLevy}
+                    mls={m.taxResult.mls}
+                    totalTax={m.taxResult.totalTax}
+                    takeHome={m.taxResult.takeHome}
+                    income={m.taxResult.income}
+                  />
+                </div>
+                {/* Show explanation text below the card (filtered to remove duplicate tax numbers) */}
+                <MessageBubble sender={m.sender}>
+                  {m.sender === 'ai' 
+                    ? filterTaxCalculationLines(m.text).split('\n').map((line, idx) => <div key={idx}>{line}</div>)
+                    : m.text.split('\n').map((line, idx) => <div key={idx}>{line}</div>)
+                  }
+                </MessageBubble>
+              </>
             ) : (
               // Show normal message bubble for non-tax messages
               <MessageBubble sender={m.sender}>
@@ -274,24 +373,48 @@ export default function ChatPanel() {
           </div>
         ))}
       </div>
-      <form onSubmit={onSend} className="flex gap-2.5 p-2.5 border-t border-border">
-        <label htmlFor="chatInput" className="sr-only">Message</label>
-        <input
-          id="chatInput"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Type a message (e.g., 85000)…"
-          aria-label="Chat message"
-          className="flex-1 px-3.5 py-3 rounded-xl border border-border bg-[#0f1117] text-text outline-none focus:ring-2 focus:ring-accent/40"
-        />
-        <button 
-          type="submit" 
-          disabled={isLoading}
-          className="px-4 h-10 rounded-xl border border-border bg-accent text-[#05121f] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoading ? 'Sending...' : 'Send'}
-        </button>
-      </form>
+      <div className="border-t border-border p-2.5">
+        {/* Quick Action Buttons */}
+        <div className="flex gap-2 mb-3 flex-wrap">
+          <button 
+            onClick={() => setDraft("85000, single")}
+            className="px-3 py-1.5 text-sm rounded-lg border border-border bg-[#0f1117] text-muted hover:text-text hover:border-accent/40 transition-colors"
+          >
+            💼 $85k Single
+          </button>
+          <button 
+            onClick={() => setDraft("120k, married, 2 kids")}
+            className="px-3 py-1.5 text-sm rounded-lg border border-border bg-[#0f1117] text-muted hover:text-text hover:border-accent/40 transition-colors"
+          >
+            👨‍👩‍👧‍👦 $120k Family
+          </button>
+          <button 
+            onClick={() => setDraft("95000, no private health")}
+            className="px-3 py-1.5 text-sm rounded-lg border border-border bg-[#0f1117] text-muted hover:text-text hover:border-accent/40 transition-colors"
+          >
+            💰 $95k No Insurance
+          </button>
+        </div>
+
+        <form onSubmit={onSend} className="flex gap-2.5">
+          <label htmlFor="chatInput" className="sr-only">Message</label>
+          <input
+            id="chatInput"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="e.g., '85000, single' or '120k, married, 2 kids, family income 200k'..."
+            aria-label="Chat message"
+            className="flex-1 px-3.5 py-3 rounded-xl border border-border bg-[#0f1117] text-text outline-none focus:ring-2 focus:ring-accent/40"
+          />
+          <button 
+            type="submit" 
+            disabled={isLoading}
+            className="px-4 h-10 rounded-xl border border-border bg-accent text-[#05121f] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Sending...' : 'Send'}
+          </button>
+        </form>
+      </div>
     </section>
   );
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Field from '@/components/common/Field';
 import Button from '@/components/common/Button';
 import { parseIncome } from '@/lib/parse';
@@ -7,7 +7,24 @@ import type { TaxYear, FilingStatus } from '@/types/tax';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
-export default function FormPanel() {
+interface TaxCalculation {
+  income: number;
+  baseTax: number;
+  medicareLevy: number;
+  mls: number;
+  totalTax: number;
+  takeHome: number;
+  filingStatus: 'single' | 'family';
+  combinedFamilyIncome?: number;
+  numChildren?: number;
+  hasPrivateHealth: boolean;
+}
+
+interface FormPanelProps {
+  syncedCalculation?: TaxCalculation | null;
+}
+
+export default function FormPanel({ syncedCalculation }: FormPanelProps) {
   const [incomeInput, setIncomeInput] = useState('');
   const [combinedIncomeInput, setCombinedIncomeInput] = useState('');
   const [year, setYear] = useState<TaxYear>('2024–25');
@@ -20,6 +37,34 @@ export default function FormPanel() {
 
   const parsedIncome = useMemo(() => parseIncome(incomeInput ?? ''), [incomeInput]);
   const parsedCombinedIncome = useMemo(() => parseIncome(combinedIncomeInput ?? ''), [combinedIncomeInput]);
+
+  // Sync form fields when new tax calculation comes from ChatPanel
+  useEffect(() => {
+    if (syncedCalculation) {
+      setIncomeInput(syncedCalculation.income.toString());
+      setFilingStatus(syncedCalculation.filingStatus);
+      setHasPHI(syncedCalculation.hasPrivateHealth);
+      setNumChildren(syncedCalculation.numChildren || 0);
+      
+      // Set combined family income (or clear it if not provided)
+      if (syncedCalculation.combinedFamilyIncome) {
+        setCombinedIncomeInput(syncedCalculation.combinedFamilyIncome.toString());
+      } else {
+        setCombinedIncomeInput('');
+      }
+      
+      // Set the result to show the calculation immediately
+      setResult({
+        base: syncedCalculation.baseTax,
+        levy: syncedCalculation.medicareLevy,
+        mls: syncedCalculation.mls,
+        total: syncedCalculation.totalTax,
+        takeHome: syncedCalculation.takeHome
+      });
+      
+      setError(null);
+    }
+  }, [syncedCalculation]);
 
   async function calculate() {
     if (!parsedIncome) {
@@ -41,7 +86,7 @@ export default function FormPanel() {
       const messages = [
         { 
           role: 'system', 
-          content: 'You are an Australian tax assistant. Use the calculate_tax tool directly without asking questions. After using the tool, clearly state the results in this exact format: "base_tax: X, medicare_levy: Y, mls: Z, total_tax: A, take_home: B" where the values are the numbers from the tool result.'
+          content: 'You are an Australian tax assistant. Use the calculate_tax tool directly without asking questions. After using the tool, format the results exactly as: **Base Tax**: $X **Medicare Levy**: $Y **Medicare Levy Surcharge**: $Z **Total Tax Payable**: $A **Take-Home Income**: $B where the values are from the tool result with proper currency formatting.'
         },
         { 
           role: 'user', 
@@ -120,12 +165,12 @@ export default function FormPanel() {
             takeHome: parseFloat(formatMatch[5].replace(/,/g, ''))
           };
         } else {
-          // Fallback: look for individual values with more flexible patterns
-          const baseMatch = fullResponse.match(/(?:base.tax|base_tax)[:\s]*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
-          const medicareMatch = fullResponse.match(/(?:medicare.levy|medicare_levy)[:\s]*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
-          const mlsMatch = fullResponse.match(/(?:mls|medicare.levy.surcharge)[:\s]*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
-          const totalMatch = fullResponse.match(/(?:total.tax|total_tax)[:\s]*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
-          const takeHomeMatch = fullResponse.match(/(?:take.home|take_home)[:\s]*\$?([0-9,]+(?:\.[0-9]{2})?)/i);
+          // Fallback: look for the exact format our system prompt produces
+          const baseMatch = fullResponse.match(/\*\*Base Tax\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
+          const medicareMatch = fullResponse.match(/\*\*Medicare Levy\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
+          const mlsMatch = fullResponse.match(/\*\*Medicare Levy Surcharge.*?\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
+          const totalMatch = fullResponse.match(/\*\*Total Tax Payable\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
+          const takeHomeMatch = fullResponse.match(/\*\*Take-Home Income\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
 
           if (baseMatch && medicareMatch && totalMatch) {
             parsedData = {
