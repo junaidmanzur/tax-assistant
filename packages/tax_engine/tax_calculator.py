@@ -81,6 +81,43 @@ def calculate_mls_base(income_for_mls: float, rate: float) -> float:
     """Calculate MLS amount based on income and rate."""
     return max(0.0, income_for_mls * rate)
 
+def calculate_lito(income: float, lito_cfg: Optional[Dict[str, Any]]) -> float:
+    """
+    Calculate Low Income Tax Offset (LITO) for 2024-25.
+    
+    LITO provides up to $700 offset with two-tier phase-out:
+    - Full $700 offset for income <= $37,500
+    - Phase 1: $37,501-$45,000 reduces at 5 cents per dollar
+    - Phase 2: $45,001-$66,667 reduces at 1.5 cents per dollar from $325 base
+    - No offset for income > $66,667
+    """
+    if not lito_cfg:
+        return 0.0
+    
+    max_offset = float(lito_cfg.get("max_offset", 700))
+    full_threshold = float(lito_cfg.get("full_offset_threshold", 37500))
+    phase_1_end = float(lito_cfg.get("phase_1_end", 45000))
+    phase_1_rate = float(lito_cfg.get("phase_1_rate", 0.05))
+    phase_2_base = float(lito_cfg.get("phase_2_base", 325))
+    phase_2_start = float(lito_cfg.get("phase_2_start", 45000))
+    phase_2_end = float(lito_cfg.get("phase_2_end", 66667))
+    phase_2_rate = float(lito_cfg.get("phase_2_rate", 0.015))
+    
+    if income <= full_threshold:
+        # Full offset
+        return max_offset
+    elif income <= phase_1_end:
+        # Phase 1: $700 - (income - $37,500) × 0.05
+        reduction = (income - full_threshold) * phase_1_rate
+        return max(0.0, max_offset - reduction)
+    elif income <= phase_2_end:
+        # Phase 2: $325 - (income - $45,000) × 0.015
+        reduction = (income - phase_2_start) * phase_2_rate
+        return max(0.0, phase_2_base - reduction)
+    else:
+        # No offset
+        return 0.0
+
 def calculate_mls(
     income: float,
     has_private_health: bool,
@@ -133,11 +170,17 @@ def calculate_tax(
         num_dependent_children,
         combined_family_income_for_mls
     )
-    total_tax = round(base_tax + medicare_levy + mls, 2)
+    lito = calculate_lito(income, rules.get("low_income_tax_offset"))
+    
+    # Calculate total tax after applying LITO offset
+    gross_tax = base_tax + medicare_levy + mls
+    total_tax = max(0.0, gross_tax - lito)
+    
     return {
         "base_tax": round(base_tax, 2),
         "medicare_levy": round(medicare_levy, 2),
         "mls": round(mls, 2),
-        "total_tax": total_tax,
+        "lito": round(lito, 2),
+        "total_tax": round(total_tax, 2),
         "take_home": round(income - total_tax, 2),
     }

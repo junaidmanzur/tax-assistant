@@ -12,6 +12,7 @@ interface TaxCalculation {
   baseTax: number;
   medicareLevy: number;
   mls: number;
+  lito: number;
   totalTax: number;
   takeHome: number;
   filingStatus: 'single' | 'family';
@@ -33,7 +34,7 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
   const [numChildren, setNumChildren] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ base: number; levy: number; mls: number; total: number; takeHome: number } | null>(null);
+  const [result, setResult] = useState<{ base: number; levy: number; mls: number; lito: number; total: number; takeHome: number } | null>(null);
 
   const parsedIncome = useMemo(() => parseIncome(incomeInput ?? ''), [incomeInput]);
   const parsedCombinedIncome = useMemo(() => parseIncome(combinedIncomeInput ?? ''), [combinedIncomeInput]);
@@ -58,6 +59,7 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
         base: syncedCalculation.baseTax,
         levy: syncedCalculation.medicareLevy,
         mls: syncedCalculation.mls,
+        lito: syncedCalculation.lito,
         total: syncedCalculation.totalTax,
         takeHome: syncedCalculation.takeHome
       });
@@ -86,7 +88,7 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
       const messages = [
         { 
           role: 'system', 
-          content: 'You are an Australian tax assistant. Use the calculate_tax tool directly without asking questions. After using the tool, format the results exactly as: **Base Tax**: $X **Medicare Levy**: $Y **Medicare Levy Surcharge**: $Z **Total Tax Payable**: $A **Take-Home Income**: $B where the values are from the tool result with proper currency formatting.'
+          content: 'You are an Australian tax assistant. Use the calculate_tax tool directly without asking questions. After using the tool, format the results exactly as: **Base Tax**: $X **Medicare Levy**: $Y **Medicare Levy Surcharge**: $Z **Low Income Tax Offset**: -$W **Total Tax Payable**: $A **Take-Home Income**: $B where the values are from the tool result with proper currency formatting.'
         },
         { 
           role: 'user', 
@@ -149,6 +151,7 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
           base: parseFloat(structuredMatch[1]),
           levy: parseFloat(structuredMatch[2]),
           mls: parseFloat(structuredMatch[3]),
+          lito: 0, // This format doesn't include LITO separately
           total: parseFloat(structuredMatch[4]),
           takeHome: parseFloat(structuredMatch[5])
         };
@@ -161,6 +164,7 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
             base: parseFloat(formatMatch[1].replace(/,/g, '')),
             levy: parseFloat(formatMatch[2].replace(/,/g, '')),
             mls: parseFloat(formatMatch[3].replace(/,/g, '')),
+            lito: 0, // This format doesn't include LITO separately
             total: parseFloat(formatMatch[4].replace(/,/g, '')),
             takeHome: parseFloat(formatMatch[5].replace(/,/g, ''))
           };
@@ -169,6 +173,7 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
           const baseMatch = fullResponse.match(/\*\*Base Tax\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
           const medicareMatch = fullResponse.match(/\*\*Medicare Levy\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
           const mlsMatch = fullResponse.match(/\*\*Medicare Levy Surcharge.*?\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
+          const litoMatch = fullResponse.match(/\*\*Low Income Tax Offset\*\*:\s*-\$([0-9,]+(?:\.[0-9]{2})?)/i);
           const totalMatch = fullResponse.match(/\*\*Total Tax Payable\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
           const takeHomeMatch = fullResponse.match(/\*\*Take-Home Income\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
 
@@ -177,6 +182,7 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
               base: parseFloat(baseMatch[1].replace(/,/g, '')),
               levy: parseFloat(medicareMatch[1].replace(/,/g, '')),
               mls: mlsMatch ? parseFloat(mlsMatch[1].replace(/,/g, '')) : 0,
+              lito: (litoMatch && litoMatch[1]) ? parseFloat(litoMatch[1].replace(/,/g, '')) : 0,
               total: parseFloat(totalMatch[1].replace(/,/g, '')),
               takeHome: takeHomeMatch ? parseFloat(takeHomeMatch[1].replace(/,/g, '')) : parsedIncome - parseFloat(totalMatch[1].replace(/,/g, ''))
             };
@@ -187,8 +193,6 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
       if (parsedData) {
         setResult(parsedData);
       } else {
-        // Debug: log the response to see what we're getting
-        console.log('Full response for debugging:', fullResponse);
         throw new Error('Could not parse tax calculation results from response. Please try the chat interface for detailed calculations.');
       }
 
@@ -304,6 +308,9 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
           <div className="kv"><span>Base tax</span><span id="r-base">{currency(result.base)}</span></div>
           <div className="kv"><span>Medicare Levy</span><span id="r-levy">{currency(result.levy)}</span></div>
           <div className="kv"><span>Medicare Levy Surcharge</span><span id="r-mls">{currency(result.mls)}</span></div>
+          {result.lito > 0 && (
+            <div className="kv"><span>Low Income Tax Offset</span><span id="r-lito" style={{color: '#10b981'}}>-{currency(result.lito)}</span></div>
+          )}
         </div>
       )}
 

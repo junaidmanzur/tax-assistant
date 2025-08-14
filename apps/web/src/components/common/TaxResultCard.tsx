@@ -2,6 +2,7 @@ interface TaxResultCardProps {
   baseTax: number;
   medicareLevy: number;
   mls: number;
+  lito: number;
   totalTax: number;
   takeHome: number;
   income: number;
@@ -11,6 +12,7 @@ export default function TaxResultCard({
   baseTax, 
   medicareLevy, 
   mls, 
+  lito,
   totalTax, 
   takeHome,
   income 
@@ -52,6 +54,13 @@ export default function TaxResultCard({
           <span className="text-text">Medicare Levy Surcharge</span>
           <span className="font-semibold text-text">{formatCurrency(mls)}</span>
         </div>
+        
+        {lito > 0 && (
+          <div className="flex justify-between items-center">
+            <span className="text-text">Low Income Tax Offset</span>
+            <span className="font-semibold text-accent">-{formatCurrency(lito)}</span>
+          </div>
+        )}
         
         <div className="flex justify-between items-center border-t border-border pt-3 mt-3">
           <span className="font-bold text-text text-lg">Total Tax</span>

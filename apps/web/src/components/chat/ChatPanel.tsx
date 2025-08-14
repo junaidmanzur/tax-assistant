@@ -54,6 +54,7 @@ interface TaxResult {
   baseTax: number;
   medicareLevy: number;
   mls: number;
+  lito: number;
   totalTax: number;
   takeHome: number;
   income: number;
@@ -95,6 +96,7 @@ function extractTaxResults(text: string): TaxResult | null {
   const baseMatch = text.match(/\*\*Base Tax\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
   const medicareMatch = text.match(/\*\*Medicare Levy\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
   const mlsMatch = text.match(/\*\*Medicare Levy Surcharge.*?\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
+  const litoMatch = text.match(/\*\*Low Income Tax Offset\*\*:\s*-?\$([0-9,]+(?:\.[0-9]{2})?)/i);
   const totalMatch = text.match(/\*\*Total Tax Payable\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
   const takeHomeMatch = text.match(/\*\*Take-Home Income\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
   
@@ -102,12 +104,14 @@ function extractTaxResults(text: string): TaxResult | null {
   const numberedBaseMatch = text.match(/\d+\.\s*\*\*Base Tax\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
   const numberedMedicareMatch = text.match(/\d+\.\s*\*\*Medicare Levy\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
   const numberedMlsMatch = text.match(/\d+\.\s*\*\*Medicare Levy Surcharge.*?\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
+  const numberedLitoMatch = text.match(/\d+\.\s*\*\*Low Income Tax Offset\*\*:\s*-?\$([0-9,]+(?:\.[0-9]{2})?)/i);
   const numberedTotalMatch = text.match(/\d+\.\s*\*\*Total Tax Payable\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
   const numberedTakeHomeMatch = text.match(/\d+\.\s*\*\*Take-Home Income\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
   
   const finalBase = baseMatch || numberedBaseMatch;
   const finalMedicare = medicareMatch || numberedMedicareMatch;
   const finalMls = mlsMatch || numberedMlsMatch;
+  const finalLito = litoMatch || numberedLitoMatch;
   const finalTotal = totalMatch || numberedTotalMatch;
   const finalTakeHome = takeHomeMatch || numberedTakeHomeMatch;
   
@@ -116,6 +120,7 @@ function extractTaxResults(text: string): TaxResult | null {
       baseTax: parseFloat(finalBase[1].replace(/,/g, '')),
       medicareLevy: parseFloat(finalMedicare[1].replace(/,/g, '')),
       mls: finalMls ? parseFloat(finalMls[1].replace(/,/g, '')) : 0,
+      lito: finalLito ? parseFloat(finalLito[1].replace(/,/g, '')) : 0,
       totalTax: parseFloat(finalTotal[1].replace(/,/g, '')),
       takeHome: parseFloat(finalTakeHome[1].replace(/,/g, '')),
       income: 0 // Will calculate
@@ -247,40 +252,47 @@ export default function ChatPanel({ onTaxCalculation }: ChatPanelProps) {
                       
                       // If tax results are extracted, notify parent component for FormPanel sync
                       if (taxResult && onTaxCalculation) {
-                        // Extract additional info from the entire conversation history
-                        const allMessages = [...withoutLoading, { sender: 'ai', text: response }];
-                        const conversationText = allMessages.map(msg => msg.text).join(' ');
+                        // Get the most recent user message that triggered this calculation
+                        const allMessages = [...withoutLoading];
+                        const recentUserMessages = allMessages.filter(msg => msg.sender === 'me').slice(-3); // Last 3 user messages
+                        const userInputText = recentUserMessages.map(msg => msg.text).join(' ');
                         
-                        // Check for family status
-                        const hasFamilyKeyword = /family|married|spouse|partner|kids?|children/i.test(conversationText);
+                        // Extract filing status from user input patterns
+                        const hasMarriedKeywords = /\b(?:married|spouse|partner|wife|husband)\b/i.test(userInputText);
+                        const hasKidsNumbers = /\b(?:\d+)\s*(?:kids?|children|child)\b/i.test(userInputText);
+                        const hasSingleKeyword = /\bsingle\b/i.test(userInputText);
+                        const hasNoKidsKeyword = /\b(?:no|0)\s*(?:kids?|children)\b/i.test(userInputText);
                         
-                        // Extract combined family income
+                        const filingStatus = (hasMarriedKeywords || (hasKidsNumbers && !hasNoKidsKeyword)) && !hasSingleKeyword ? 'family' : 'single';
+                        
+                        // Extract private health from user input patterns
+                        const hasPrivateHealthYes = /\b(?:have|has|with|yes).*private.*health\b/i.test(userInputText) ||
+                                                   /\bprivate.*health\b/i.test(userInputText) && !/\bno\b/i.test(userInputText);
+                        const hasPrivateHealthNo = /\b(?:no|without|don't\s+have).*private.*health\b/i.test(userInputText) ||
+                                                  /\bno.*private.*health\b/i.test(userInputText);
+                        const hasPrivateHealth = hasPrivateHealthYes && !hasPrivateHealthNo;
+                        
+                        // Extract combined family income and children from user input
+                        const conversationText = userInputText;
+                        
                         let combinedFamilyIncome: number | undefined;
-                        const familyIncomeMatch = conversationText.match(/(?:family.*income|combined.*income)[:\s]*(?:\$)?([0-9,]+(?:k|000)?)/i);
-                        const totalIncomeMatch = conversationText.match(/(?:total.*income|earn.*total)[:\s]*(?:\$)?([0-9,]+(?:k|000)?)/i);
-                        
-                        if (familyIncomeMatch) {
-                          const incomeStr = familyIncomeMatch[1].replace(/,/g, '');
-                          combinedFamilyIncome = incomeStr.includes('k') ? 
-                            parseFloat(incomeStr.replace('k', '')) * 1000 : 
-                            parseFloat(incomeStr);
-                        } else if (totalIncomeMatch) {
-                          const incomeStr = totalIncomeMatch[1].replace(/,/g, '');
-                          combinedFamilyIncome = incomeStr.includes('k') ? 
-                            parseFloat(incomeStr.replace('k', '')) * 1000 : 
-                            parseFloat(incomeStr);
+                        if (filingStatus === 'family') {
+                          const familyIncomeMatch = conversationText.match(/(?:family.*income|combined.*income|total.*income)[:\s]*(?:\$)?([0-9,]+(?:k|000)?)/i);
+                          
+                          if (familyIncomeMatch) {
+                            const incomeStr = familyIncomeMatch[1].replace(/,/g, '');
+                            combinedFamilyIncome = incomeStr.includes('k') ? 
+                              parseFloat(incomeStr.replace('k', '')) * 1000 : 
+                              parseFloat(incomeStr);
+                          }
                         }
                         
-                        // Extract number of children
+                        // Extract number of children from conversation
                         let numChildren = 0;
                         const childrenMatch = conversationText.match(/(\d+)\s*(?:kids?|children|child)/i);
-                        if (childrenMatch) {
+                        if (childrenMatch && !/no.*(?:kids?|children)|0\s+(?:kids?|children)/i.test(conversationText)) {
                           numChildren = parseInt(childrenMatch[1]);
                         }
-                        
-                        // Extract private health status
-                        const hasPrivateHealthKeyword = /private.*health|health.*insurance/i.test(conversationText);
-                        const hasPrivateHealth = hasPrivateHealthKeyword && !/no.*private|without.*private/i.test(conversationText);
                         
                         onTaxCalculation({
                           income: taxResult.income,
@@ -289,7 +301,7 @@ export default function ChatPanel({ onTaxCalculation }: ChatPanelProps) {
                           mls: taxResult.mls,
                           totalTax: taxResult.totalTax,
                           takeHome: taxResult.takeHome,
-                          filingStatus: hasFamilyKeyword ? 'family' : 'single',
+                          filingStatus,
                           combinedFamilyIncome,
                           numChildren,
                           hasPrivateHealth,
@@ -351,6 +363,7 @@ export default function ChatPanel({ onTaxCalculation }: ChatPanelProps) {
                     baseTax={m.taxResult.baseTax}
                     medicareLevy={m.taxResult.medicareLevy}
                     mls={m.taxResult.mls}
+                    lito={m.taxResult.lito}
                     totalTax={m.taxResult.totalTax}
                     takeHome={m.taxResult.takeHome}
                     income={m.taxResult.income}

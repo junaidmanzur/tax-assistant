@@ -59,8 +59,18 @@
       { "min_income": 151001, "max_income": null, "rate": 0.015 }
     ]
   },
+  "low_income_tax_offset": {
+    "max_offset": 700,
+    "full_offset_threshold": 37500,
+    "phase_1_end": 45000,
+    "phase_1_rate": 0.05,
+    "phase_2_base": 325,
+    "phase_2_start": 45000,
+    "phase_2_end": 66667,
+    "phase_2_rate": 0.015
+  },
   "assumptions": {
-    "include_LITO": false,
+    "include_LITO": true,
     "multiple_incomes_supported": false,
     "default_private_health": true
   }
