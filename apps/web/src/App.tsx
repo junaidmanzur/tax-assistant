@@ -1,19 +1,7 @@
 import { useState } from 'react';
 import ChatPanel from '@/components/chat/ChatPanel';
 import FormPanel from '@/components/form/FormPanel';
-
-interface TaxCalculation {
-  income: number;
-  baseTax: number;
-  medicareLevy: number;
-  mls: number;
-  totalTax: number;
-  takeHome: number;
-  filingStatus: 'single' | 'family';
-  combinedFamilyIncome?: number;
-  numChildren?: number;
-  hasPrivateHealth: boolean;
-}
+import { TaxCalculation } from '@/types/tax';
 
 export default function App() {
   const [activePanel, setActivePanel] = useState<'chat' | 'form'>('chat');

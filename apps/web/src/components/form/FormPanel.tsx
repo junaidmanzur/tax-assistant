@@ -3,23 +3,9 @@ import Field from '@/components/common/Field';
 import Button from '@/components/common/Button';
 import { parseIncome } from '@/lib/parse';
 import { currency } from '@/lib/format';
-import type { TaxYear, FilingStatus } from '@/types/tax';
+import type { TaxYear, FilingStatus, TaxCalculation } from '@/types/tax';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
-
-interface TaxCalculation {
-  income: number;
-  baseTax: number;
-  medicareLevy: number;
-  mls: number;
-  lito: number;
-  totalTax: number;
-  takeHome: number;
-  filingStatus: 'single' | 'family';
-  combinedFamilyIncome?: number;
-  numChildren?: number;
-  hasPrivateHealth: boolean;
-}
 
 interface FormPanelProps {
   syncedCalculation?: TaxCalculation | null;

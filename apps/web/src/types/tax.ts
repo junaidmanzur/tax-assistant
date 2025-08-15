@@ -18,6 +18,20 @@ export interface TaxResponse {
   takeHome: number;
 }
 
+export interface TaxCalculation {
+  income: number;
+  baseTax: number;
+  medicareLevy: number;
+  mls: number;
+  lito: number;
+  totalTax: number;
+  takeHome: number;
+  filingStatus: 'single' | 'family';
+  combinedFamilyIncome?: number;
+  numChildren?: number;
+  hasPrivateHealth: boolean;
+}
+
 // Chat-related types
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
