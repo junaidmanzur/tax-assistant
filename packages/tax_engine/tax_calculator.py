@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Literal
 
-def load_tax_rules(tax_year: int, rules_dir: str | Path = "../tax_rules") -> Dict[str, Any]:
+def load_tax_rules(tax_year: int, rules_dir: str | Path = "packages/tax_rules") -> Dict[str, Any]:
     """
     Load tax rules from a file named tax_rules_<year>.json (e.g., tax_rules_2024.json).
     Raises a helpful error if not present or malformed.
@@ -149,7 +149,7 @@ def calculate_tax(
     income: float,
     has_private_health: bool,
     tax_year: int = 2024,
-    rules_dir: str | Path = "../tax_rules",
+    rules_dir: str | Path = "packages/tax_rules",
     filing_status: Literal["single", "family"] = "single",
     num_dependent_children: int = 0,
     combined_family_income_for_mls: Optional[float] = None,

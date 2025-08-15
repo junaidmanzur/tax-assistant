@@ -1,0 +1,55 @@
+# Multi-stage build: Build frontend first, then combine with backend
+FROM node:18-alpine as frontend-builder
+
+WORKDIR /app
+
+# Copy package files first
+COPY apps/web/package.json apps/web/pnpm-lock.yaml ./
+RUN corepack enable && pnpm install
+
+# Copy source files (excluding node_modules)
+COPY apps/web/src ./src
+COPY apps/web/index.html apps/web/vite.config.ts apps/web/tsconfig.json apps/web/tailwind.config.ts apps/web/postcss.config.js ./
+
+RUN pnpm build
+
+# Backend stage with frontend assets
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install build dependencies for Python packages
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    cmake \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy backend code
+COPY packages/ ./packages/
+COPY services/ ./services/
+
+# Copy built frontend from previous stage
+COPY --from=frontend-builder /app/dist ./static
+
+# Set Python path - must be set in the environment for both startup script and runtime
+ENV PYTHONPATH="/app/packages:/app/services"
+
+# Install nginx to serve static files
+RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
+
+# Copy nginx configuration
+COPY infra/docker/nginx.conf /etc/nginx/sites-available/default
+
+# Create startup script
+COPY infra/docker/start.sh /start.sh
+RUN chmod +x /start.sh
+
+EXPOSE 8000
+
+CMD ["/start.sh"]

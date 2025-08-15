@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  tax-assistant-combined:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.combined
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}

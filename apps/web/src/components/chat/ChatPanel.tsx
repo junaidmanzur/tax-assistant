@@ -1,6 +1,6 @@
 import { FormEvent, useState, useRef } from 'react';
 import MessageBubble, { Sender } from './MessageBubble';
-import { ChatMessage, ChatRequest } from '@/types/tax';
+import { ChatMessage, ChatRequest, TaxCalculation } from '@/types/tax';
 import TaxResultCard from '@/components/common/TaxResultCard';
 
 // Helper function to format tax calculation results
@@ -135,19 +135,6 @@ function extractTaxResults(text: string): TaxResult | null {
   return null;
 }
 
-interface TaxCalculation {
-  income: number;
-  baseTax: number;
-  medicareLevy: number;
-  mls: number;
-  totalTax: number;
-  takeHome: number;
-  filingStatus: 'single' | 'family';
-  combinedFamilyIncome?: number;
-  numChildren?: number;
-  hasPrivateHealth: boolean;
-}
-
 interface ChatPanelProps {
   onTaxCalculation?: (calculation: TaxCalculation) => void;
 }
@@ -248,10 +235,43 @@ export default function ChatPanel({ onTaxCalculation }: ChatPanelProps) {
                       const withoutLoading = m.filter(msg => msg.sender !== 'loading');
                       const response = aiResponse || 'I\'m ready to help with your tax calculation!';
                       let taxResult = extractTaxResults(response);
-                      const formattedResponse = formatTaxResponse(response);
                       
+                      // Remove JSON block from display (it's only for data extraction)
+                      const cleanedResponse = response
+                        .replace(/```json\s*\{[\s\S]*?\}\s*```/g, '')  // Standard JSON blocks
+                        .replace(/```\s*\{\s*[\s\S]*?\}\s*```/g, '')   // JSON blocks without 'json' label
+                        .replace(/\{\s*"taxCalculation"[\s\S]*?\}\s*$/g, '') // Bare JSON at end
+                        .trim();
+                      const formattedResponse = formatTaxResponse(cleanedResponse);
+                      
+                      // First try to extract JSON data from the response
+                      let jsonTaxData = null;
+                      try {
+                        // Try multiple JSON patterns
+                        const patterns = [
+                          /```json\s*(\{[\s\S]*?\})\s*```/,     // Standard JSON blocks
+                          /```\s*(\{[\s\S]*?\})\s*```/,        // JSON blocks without 'json' label
+                          /(\{\s*"taxCalculation"[\s\S]*?\})/   // Bare JSON
+                        ];
+                        
+                        let jsonMatch = null;
+                        for (const pattern of patterns) {
+                          jsonMatch = response.match(pattern);
+                          if (jsonMatch) break;
+                        }
+                        
+                        if (jsonMatch) {
+                          const jsonData = JSON.parse(jsonMatch[1]);
+                          if (jsonData.taxCalculation) {
+                            jsonTaxData = jsonData.taxCalculation;
+                          }
+                        }
+                      } catch (error) {
+                        console.log('Could not parse JSON tax data, falling back to text parsing');
+                      }
+
                       // If tax results are extracted, notify parent component for FormPanel sync
-                      if (taxResult && onTaxCalculation) {
+                      if ((taxResult || jsonTaxData) && onTaxCalculation) {
                         // Get the most recent user message that triggered this calculation
                         const allMessages = [...withoutLoading];
                         const recentUserMessages = allMessages.filter(msg => msg.sender === 'me').slice(-3); // Last 3 user messages
@@ -294,18 +314,36 @@ export default function ChatPanel({ onTaxCalculation }: ChatPanelProps) {
                           numChildren = parseInt(childrenMatch[1]);
                         }
                         
-                        onTaxCalculation({
-                          income: taxResult.income,
-                          baseTax: taxResult.baseTax,
-                          medicareLevy: taxResult.medicareLevy,
-                          mls: taxResult.mls,
-                          totalTax: taxResult.totalTax,
-                          takeHome: taxResult.takeHome,
-                          filingStatus,
-                          combinedFamilyIncome,
-                          numChildren,
-                          hasPrivateHealth,
-                        });
+                        // Use JSON data if available, otherwise fall back to parsed text
+                        if (jsonTaxData) {
+                          onTaxCalculation({
+                            income: jsonTaxData.income,
+                            baseTax: jsonTaxData.baseTax,
+                            medicareLevy: jsonTaxData.medicareLevy,
+                            mls: jsonTaxData.mls,
+                            lito: jsonTaxData.lito,
+                            totalTax: jsonTaxData.totalTax,
+                            takeHome: jsonTaxData.takeHome,
+                            filingStatus: jsonTaxData.filingStatus,
+                            combinedFamilyIncome: jsonTaxData.combinedFamilyIncome,
+                            numChildren: jsonTaxData.numChildren,
+                            hasPrivateHealth: jsonTaxData.hasPrivateHealth,
+                          });
+                        } else if (taxResult) {
+                          onTaxCalculation({
+                            income: taxResult.income,
+                            baseTax: taxResult.baseTax,
+                            medicareLevy: taxResult.medicareLevy,
+                            mls: taxResult.mls,
+                            lito: taxResult.lito,
+                            totalTax: taxResult.totalTax,
+                            takeHome: taxResult.takeHome,
+                            filingStatus,
+                            combinedFamilyIncome,
+                            numChildren,
+                            hasPrivateHealth,
+                          });
+                        }
                       }
                       
                       return [...withoutLoading, { 

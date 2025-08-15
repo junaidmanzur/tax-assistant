@@ -2,6 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install build dependencies for llama-cpp-python
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy requirements from root
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -11,8 +17,8 @@ COPY packages/ ./packages/
 COPY services/ ./services/
 
 # Set Python path to include packages and services
-ENV PYTHONPATH="/app/packages:/app/services:$PYTHONPATH"
+ENV PYTHONPATH="/app:/app/packages:/app/services"
 
-WORKDIR /app/services/api_gateway
+WORKDIR /app
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "services.api_gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
