@@ -7,8 +7,8 @@ services:
       dockerfile: infra/docker/Dockerfile.api-gateway
     ports:
       - "8000:8000"
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    env_file:
+      - ../../.env
 
   web:
     build:
