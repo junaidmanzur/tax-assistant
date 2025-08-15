@@ -1,0 +1,25 @@
+services:
+  # Backend API Service
+  - type: web
+    name: tax-assistant-api
+    runtime: docker
+    dockerfilePath: ./infra/docker/Dockerfile.api-gateway
+    plan: starter
+    region: singapore  # Closest to Australia
+    branch: main
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false  # Set this manually in Render dashboard
+    healthCheckPath: /docs
+    
+  # Frontend Web Service  
+  - type: web
+    name: tax-assistant-web
+    runtime: docker
+    dockerfilePath: ./infra/docker/Dockerfile.web
+    plan: starter
+    region: singapore  # Closest to Australia
+    branch: main
+    envVars:
+      - key: VITE_API_BASE
+        value: https://tax-assistant-api.onrender.com

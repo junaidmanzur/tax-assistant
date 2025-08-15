@@ -1,0 +1,17 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY apps/web/package.json apps/web/pnpm-lock.yaml ./
+RUN corepack enable && pnpm install
+
+# Copy app source
+COPY apps/web/ .
+
+# Build the app
+RUN pnpm build
+
+# Serve the app
+EXPOSE 5173
+CMD ["pnpm", "preview", "--host", "0.0.0.0"]
