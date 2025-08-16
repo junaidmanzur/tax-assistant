@@ -6,6 +6,7 @@ from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from agent.tools.tax_tool import calculate_tax_tool
+from agent.tools.deductions_tool import deductions_tool
 
 # Get API key from environment variable first, then try .env file
 api_key = os.getenv("OPENAI_API_KEY")
@@ -30,7 +31,7 @@ system_prompt = load_system_prompt()
 # Create the agent
 memory = MemorySaver()
 model = init_chat_model("gpt-4o-mini", model_provider="openai")
-tools = [calculate_tax_tool]
+tools = [calculate_tax_tool, deductions_tool]
 agent = create_react_agent(model, tools, checkpointer=memory, state_modifier=system_prompt)
 
 # Use the agent
