@@ -13,6 +13,7 @@ export default defineConfig({
       '@/components': fileURLToPath(new URL('./src/components', import.meta.url)),
       '@/types': fileURLToPath(new URL('./src/types', import.meta.url)),
       '@/lib': fileURLToPath(new URL('./src/lib', import.meta.url)),
+      '@/store': fileURLToPath(new URL('./src/store', import.meta.url)),
     },
   },
   server: {

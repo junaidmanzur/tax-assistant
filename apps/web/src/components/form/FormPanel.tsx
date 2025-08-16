@@ -4,6 +4,8 @@ import Button from '@/components/common/Button';
 import { parseIncome } from '@/lib/parse';
 import { currency } from '@/lib/format';
 import type { TaxYear, FilingStatus, TaxCalculation } from '@/types/tax';
+import { useWizardState, useFeatureFlag, useDeductionsData } from '../../store/deductionsStore';
+import DeductionsWizard from '../deductions/DeductionsWizard';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
@@ -21,6 +23,11 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ base: number; levy: number; mls: number; lito: number; total: number; takeHome: number } | null>(null);
+  
+  // Deductions store
+  const { openWizard } = useWizardState();
+  const { enabled: deductionsEnabled } = useFeatureFlag();
+  const { hasAnyDeductions, totalEstimated } = useDeductionsData();
 
   const parsedIncome = useMemo(() => parseIncome(incomeInput ?? ''), [incomeInput]);
   const parsedCombinedIncome = useMemo(() => parseIncome(combinedIncomeInput ?? ''), [combinedIncomeInput]);
@@ -192,7 +199,8 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
   }
 
   return (
-    <section className="panel p-4 grid gap-3.5" aria-label="Form inputs">
+    <>
+      <section className="panel p-4 grid gap-3.5" aria-label="Form inputs">
       <Field label="Your Individual Income" htmlFor="income" hint="Enter your personal annual taxable income. Use shortcuts like 80k." error={error}>
         <input
           id="income"
@@ -285,6 +293,20 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
         </div>
       </div>
 
+      {/* Deductions button */}
+      {deductionsEnabled && (
+        <Button 
+          type="button" 
+          onClick={() => {
+            console.log('Deductions button clicked, opening wizard');
+            openWizard(1);
+          }}
+          className="mb-3"
+        >
+          Add deductions (2024–25) {hasAnyDeductions && `($${totalEstimated.toLocaleString()} estimated)`}
+        </Button>
+      )}
+
       <Button id="calcBtn" type="button" onClick={calculate} loading={loading}>Calculate</Button>
 
       {result && (
@@ -301,6 +323,10 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
       )}
 
       <p className="text-muted text-xs">Data is based on current ATO rules. Estimates are for guidance only. Please consult a professional for complex cases.</p>
-    </section>
+      </section>
+      
+      {/* Deductions wizard */}
+      <DeductionsWizard income={parsedIncome || 0} />
+    </>
   );
 }
