@@ -33,7 +33,25 @@ class DeductionsService:
     
     def is_feature_enabled(self) -> bool:
         """Public method to check feature status."""
+        # Refresh from environment on each check for runtime updates
+        self.feature_enabled = self._check_feature_flag()
         return self.feature_enabled
+    
+    def set_feature_enabled(self, enabled: bool) -> bool:
+        """Dynamically enable/disable the feature at runtime."""
+        self.feature_enabled = enabled
+        # Optionally persist to environment for this process
+        os.environ["ENABLE_DEDUCTIONS_FEATURE"] = str(enabled).lower()
+        return self.feature_enabled
+    
+    def get_feature_status(self) -> Dict[str, Any]:
+        """Get detailed feature status information."""
+        return {
+            "enabled": self.is_feature_enabled(),
+            "env_var": os.getenv("ENABLE_DEDUCTIONS_FEATURE", "true"),
+            "source": "environment_variable",
+            "can_toggle": True
+        }
     
     def validate_and_calculate_deductions(
         self,

@@ -26,7 +26,7 @@ class DeductionsInput(BaseModel):
     wfh_use_fixed_rate: bool = Field(True, description="Use fixed rate method for WFH")
     
     # Car expenses
-    cars: Optional[list] = Field(None, description="List of car expense entries")
+    cars: Optional[list] = Field(None, description="List of car expense entries. Each entry should be a dict with 'method': 'cents_per_km' and 'kms': number_of_work_kilometers. Example: [{'method': 'cents_per_km', 'kms': 2000}]")
     
     # Phone & internet
     phone_internet_work_use_pct: Optional[float] = Field(None, description="Work use percentage for phone/internet")
@@ -58,25 +58,37 @@ class DeductionsInput(BaseModel):
 class DeductionsTool(BaseTool):
     """Tool for calculating tax deductions."""
     
-    name = "calculate_deductions"
-    description = """
+    name: str = "calculate_deductions"
+    description: str = """
     Calculate and validate tax deductions for Australian taxpayers (2024-25).
     
     Use this tool when users mention any deductible expenses such as:
-    - Working from home expenses
-    - Car expenses for work travel
-    - Phone/internet for work use
-    - Work clothing and laundry
-    - Tools and equipment for work
-    - Union or professional fees
-    - Donations to charity
-    - Tax agent fees
-    - Personal super contributions
+    - Working from home expenses (hours per year)
+    - Car expenses for work travel (kilometers driven for work)
+    - Phone/internet for work use (percentage or incidental use)
+    - Work clothing and laundry (loads per year or purchase amounts)
+    - Tools and equipment for work (cost and work use percentage)
+    - Union or professional fees (annual amounts)
+    - Donations to charity (DGR or bucket donations)
+    - Tax agent fees (accountant/tax preparer fees)
+    - Personal super contributions (concessional contributions)
     
-    Returns detailed breakdown of claimed vs allowed deductions with explanations.
+    For car expenses, use cents per km method with work kilometers driven.
+    For working from home, use fixed rate method with annual hours worked from home.
+    
+    Returns JSON result with deduction calculations. 
+    
+    CRITICAL TOOL CHAINING: You MUST immediately pass the complete JSON result from this tool 
+    as the 'deductions_data' parameter to the calculate_tax tool. This ensures tax is calculated 
+    on taxable income (gross income - deductions) rather than gross income alone.
+    
+    Example workflow:
+    1. Call calculate_deductions with user's deduction data
+    2. Take the ENTIRE JSON response from step 1  
+    3. Pass it as deductions_data parameter to calculate_tax tool
     """
     
-    args_schema = DeductionsInput
+    args_schema: type = DeductionsInput
     
     def _run(self, **kwargs) -> str:
         """Execute deductions calculation."""

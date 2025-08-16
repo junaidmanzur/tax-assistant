@@ -30,6 +30,27 @@ export interface TaxCalculation {
   combinedFamilyIncome?: number;
   numChildren?: number;
   hasPrivateHealth: boolean;
+  // Deductions information
+  grossIncome?: number;
+  totalDeductions?: number;
+  taxableIncome?: number;
+  deductionsBreakdown?: {
+    wfh_hours?: number;
+    wfh_use_fixed_rate?: boolean;
+    cars?: CarExpense[];
+    phone_internet_work_use_pct?: number;
+    phone_internet_incidental_claims?: boolean;
+    clothing_work_only_loads?: number;
+    clothing_mixed_loads?: number;
+    clothing_purchases?: number;
+    tools?: ToolExpense[];
+    donations_dgr_amount?: number;
+    donations_bucket_amount?: number;
+    donations_is_dgr_confirmed?: boolean;
+    union_fees?: number;
+    tax_agent_fees?: number;
+    personal_super_amount?: number;
+  };
 }
 
 // Chat-related types

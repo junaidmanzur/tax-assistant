@@ -35,6 +35,7 @@ def calculate_tax_wrapper(
 ):
     """Wrapper function that calls the tax engine with optional deductions."""
     
+    
     # Start with gross income
     gross_income = income
     total_deductions = 0.0
@@ -83,6 +84,7 @@ def calculate_tax_wrapper(
         "total_tax": tax_result["total_tax"],
         "take_home": tax_result["take_home"],
     }
+    
     
     # Add deductions breakdown if available
     if deductions_breakdown:

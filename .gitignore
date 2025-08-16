@@ -37,3 +37,6 @@ static/
 
 # Node.js
 node_modules/
+
+# Frontend build output
+apps/web/dist/
