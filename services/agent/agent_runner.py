@@ -22,8 +22,15 @@ if not api_key:
     raise ValueError("OPENAI_API_KEY environment variable not found. Please set it in your environment or .env file.")
 
 
+ENABLE_TRACING = os.getenv("ENABLE_TRACING", "false").lower() == "true"
+
+def get_langfuse_handler():
+    if not ENABLE_TRACING:
+        return None
+    return CallbackHandler()
+
 # Create the callback handler once and reuse
-langfuse_handler = CallbackHandler()
+langfuse_handler = get_langfuse_handler()
 
 # Load system prompt from file
 def load_system_prompt():
@@ -42,4 +49,4 @@ agent = create_react_agent(model, tools, checkpointer=memory, state_modifier=sys
 
 
 # expose handler for the API layer
-callbacks = [langfuse_handler]
+callbacks = [langfuse_handler] if langfuse_handler else []
