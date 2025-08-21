@@ -84,3 +84,8 @@ tax-assistant/
 - Backend uses LangChain for AI agent functionality with OpenAI GPT models
 - All services can run independently or via Docker for production deployment
 - PYTHONPATH must include packages/ directory when running services locally
+
+## Git Commit Rules
+
+-  Commit messages should be clean and professional without any AI attribution or co-authorship notices
+-  Focus commit messages on what changed and why, not on who or what created the code

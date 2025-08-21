@@ -1,7 +1,11 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from services.agent.agent_runner import agent
+from services.agent.agent_runner import agent, callbacks
 from services.api_gateway.models import ChatRequest
+from services.deductions.deductions_service import deductions_service
+from pydantic import BaseModel
+import os
+
 
 app = FastAPI(title="Tax Assistant API", description="A FastAPI application for a tax assistant")
 
@@ -14,14 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/chat")
-async def chat(request: Request):
-    body = await request.json()
-    user_input = body["message"]
-    response = agent.run(user_input)
-    return {"reply": response}
-
-
 import json
 from fastapi.responses import StreamingResponse
 
@@ -33,6 +29,19 @@ def chat_stream(req: ChatRequest):
     """
     config = req.config or {}
     config.setdefault("configurable", {})["thread_id"] = req.thread_id
+
+    # Give Langfuse useful labels without any SDK gymnastics:
+    # - run_name appears as trace name
+    # - user/session IDs group traces in the UI
+    config.update({
+        "callbacks": callbacks,
+        "run_name": "tax_agent_react",  # trace name in Langfuse UI
+        "metadata": {
+            "langfuse_user_id": getattr(req, "user_id", "anonymous"),
+            "langfuse_session_id": req.thread_id,
+            "langfuse_tags": ["tax", "react_agent", "prod" if os.getenv("ENV")=="prod" else "dev"],
+        },
+    })
 
     def event_gen():
         try:

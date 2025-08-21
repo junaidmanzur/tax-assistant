@@ -1,9 +1,11 @@
 import { useMemo, useState, useEffect } from 'react';
-import Field from '@/components/common/Field';
 import Button from '@/components/common/Button';
 import { parseIncome } from '@/lib/parse';
-import { currency } from '@/lib/format';
 import type { TaxYear, FilingStatus, TaxCalculation } from '@/types/tax';
+import TaxInfoSection from './TaxInfoSection';
+import DeductionsSection from './DeductionsSection';
+import TaxResults from './TaxResults';
+import { useDeductionsStore } from '../../store/deductionsStore';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
 
@@ -20,7 +22,40 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
   const [numChildren, setNumChildren] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ base: number; levy: number; mls: number; lito: number; total: number; takeHome: number } | null>(null);
+  const [result, setResult] = useState<{ 
+    base: number; 
+    levy: number; 
+    mls: number; 
+    lito: number; 
+    total: number; 
+    takeHome: number;
+    grossIncome?: number;
+    totalDeductions?: number;
+    taxableIncome?: number;
+  } | null>(null);
+  
+  // Deductions store hooks
+  const setWFHHours = useDeductionsStore(state => state.setWFHHours);
+  const setWFHFixedRate = useDeductionsStore(state => state.setWFHFixedRate);
+  const addCar = useDeductionsStore(state => state.addCar);
+  const updateCar = useDeductionsStore(state => state.updateCar);
+  const setPhoneInternetWorkPct = useDeductionsStore(state => state.setPhoneInternetWorkPct);
+  const setPhoneInternetIncidental = useDeductionsStore(state => state.setPhoneInternetIncidental);
+  const setClothingWorkOnlyLoads = useDeductionsStore(state => state.setClothingWorkOnlyLoads);
+  const setClothingMixedLoads = useDeductionsStore(state => state.setClothingMixedLoads);
+  const setClothingPurchases = useDeductionsStore(state => state.setClothingPurchases);
+  const addTool = useDeductionsStore(state => state.addTool);
+  const updateTool = useDeductionsStore(state => state.updateTool);
+  const setDonationsDGRAmount = useDeductionsStore(state => state.setDonationsDGRAmount);
+  const setDonationsBucketAmount = useDeductionsStore(state => state.setDonationsBucketAmount);
+  const setDonationsDGRConfirmed = useDeductionsStore(state => state.setDonationsDGRConfirmed);
+  const setUnionFees = useDeductionsStore(state => state.setUnionFees);
+  const setTaxAgentFees = useDeductionsStore(state => state.setTaxAgentFees);
+  const setPersonalSuperAmount = useDeductionsStore(state => state.setPersonalSuperAmount);
+  
+  // Get current deductions state for calculation
+  const deductionsState = useDeductionsStore();
+  
 
   const parsedIncome = useMemo(() => parseIncome(incomeInput ?? ''), [incomeInput]);
   const parsedCombinedIncome = useMemo(() => parseIncome(combinedIncomeInput ?? ''), [combinedIncomeInput]);
@@ -28,7 +63,8 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
   // Sync form fields when new tax calculation comes from ChatPanel
   useEffect(() => {
     if (syncedCalculation) {
-      setIncomeInput(syncedCalculation.income.toString());
+      // Sync basic tax info
+      setIncomeInput((syncedCalculation.grossIncome || syncedCalculation.income).toString());
       setFilingStatus(syncedCalculation.filingStatus);
       setHasPHI(syncedCalculation.hasPrivateHealth);
       setNumChildren(syncedCalculation.numChildren || 0);
@@ -38,6 +74,63 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
         setCombinedIncomeInput(syncedCalculation.combinedFamilyIncome.toString());
       } else {
         setCombinedIncomeInput('');
+      }
+      
+      // Sync deductions data if available
+      if (syncedCalculation.deductionsBreakdown) {
+        const deductions = syncedCalculation.deductionsBreakdown;
+        
+        // Working from home
+        if (deductions.wfh_hours !== undefined) {
+          setWFHHours(deductions.wfh_hours);
+        }
+        if (deductions.wfh_use_fixed_rate !== undefined) {
+          setWFHFixedRate(deductions.wfh_use_fixed_rate);
+        }
+        
+        // Phone & internet
+        if (deductions.phone_internet_work_use_pct !== undefined) {
+          setPhoneInternetWorkPct(deductions.phone_internet_work_use_pct);
+        }
+        if (deductions.phone_internet_incidental_claims !== undefined) {
+          setPhoneInternetIncidental(deductions.phone_internet_incidental_claims);
+        }
+        
+        // Clothing & laundry
+        if (deductions.clothing_work_only_loads !== undefined) {
+          setClothingWorkOnlyLoads(deductions.clothing_work_only_loads);
+        }
+        if (deductions.clothing_mixed_loads !== undefined) {
+          setClothingMixedLoads(deductions.clothing_mixed_loads);
+        }
+        if (deductions.clothing_purchases !== undefined) {
+          setClothingPurchases(deductions.clothing_purchases);
+        }
+        
+        // Donations
+        if (deductions.donations_dgr_amount !== undefined) {
+          setDonationsDGRAmount(deductions.donations_dgr_amount);
+        }
+        if (deductions.donations_bucket_amount !== undefined) {
+          setDonationsBucketAmount(deductions.donations_bucket_amount);
+        }
+        if (deductions.donations_is_dgr_confirmed !== undefined) {
+          setDonationsDGRConfirmed(deductions.donations_is_dgr_confirmed);
+        }
+        
+        // Other deductions
+        if (deductions.union_fees !== undefined) {
+          setUnionFees(deductions.union_fees);
+        }
+        if (deductions.tax_agent_fees !== undefined) {
+          setTaxAgentFees(deductions.tax_agent_fees);
+        }
+        if (deductions.personal_super_amount !== undefined) {
+          setPersonalSuperAmount(deductions.personal_super_amount);
+        }
+        
+        // TODO: Handle cars and tools arrays
+        // These would need more complex logic to sync properly
       }
       
       // Set the result to show the calculation immediately
@@ -52,7 +145,7 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
       
       setError(null);
     }
-  }, [syncedCalculation]);
+  }, [syncedCalculation, setWFHHours, setWFHFixedRate, setPhoneInternetWorkPct, setPhoneInternetIncidental, setClothingWorkOnlyLoads, setClothingMixedLoads, setClothingPurchases, setDonationsDGRAmount, setDonationsBucketAmount, setDonationsDGRConfirmed, setUnionFees, setTaxAgentFees, setPersonalSuperAmount]);
 
   async function calculate() {
     if (!parsedIncome) {
@@ -70,17 +163,55 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
     setError(null);
     setLoading(true);
     try {
+      // Check if there are any deductions to include
+      const hasDeductions = deductionsState.wfh_hours || 
+                           deductionsState.cars.length > 0 ||
+                           deductionsState.phone_internet_work_use_pct ||
+                           deductionsState.phone_internet_incidental_claims ||
+                           deductionsState.clothing_work_only_loads ||
+                           deductionsState.clothing_mixed_loads ||
+                           deductionsState.clothing_purchases ||
+                           deductionsState.tools.length > 0 ||
+                           deductionsState.donations_dgr_amount ||
+                           deductionsState.donations_bucket_amount ||
+                           deductionsState.union_fees ||
+                           deductionsState.tax_agent_fees ||
+                           deductionsState.personal_super_amount;
+
       // Use the tax calculator tool approach via chat API
       const messages = [
         { 
           role: 'system', 
-          content: 'You are an Australian tax assistant. Use the calculate_tax tool directly without asking questions. After using the tool, format the results exactly as: **Base Tax**: $X **Medicare Levy**: $Y **Medicare Levy Surcharge**: $Z **Low Income Tax Offset**: -$W **Total Tax Payable**: $A **Take-Home Income**: $B where the values are from the tool result with proper currency formatting.'
+          content: hasDeductions 
+            ? 'You are an Australian tax assistant. First use the calculate_deductions tool with the provided deduction details, then use the calculate_tax tool with the deductions data. Format the results exactly as: **Gross Income**: $X **Total Deductions**: $Y **Taxable Income**: $Z **Base Tax**: $A **Medicare Levy**: $B **Medicare Levy Surcharge**: $C **Low Income Tax Offset**: -$D **Total Tax Payable**: $E **Take-Home Income**: $F where the values are from the tool results with proper currency formatting.'
+            : 'You are an Australian tax assistant. Use the calculate_tax tool directly without asking questions. After using the tool, format the results exactly as: **Base Tax**: $X **Medicare Levy**: $Y **Medicare Levy Surcharge**: $Z **Low Income Tax Offset**: -$W **Total Tax Payable**: $A **Take-Home Income**: $B where the values are from the tool result with proper currency formatting.'
         },
         { 
           role: 'user', 
-          content: `Calculate tax for: individual income ${parsedIncome}, filing status ${filingStatus}${
-            filingStatus === 'family' ? `, combined family income ${parsedCombinedIncome}, ${numChildren} dependent children` : ''
-          }, ${hasPHI ? 'has' : 'no'} private health insurance, tax year ${year}. Please use the calculate_tax tool and provide the exact numerical results.` 
+          content: hasDeductions
+            ? `Calculate tax with deductions for: individual income ${parsedIncome}, filing status ${filingStatus}${
+                filingStatus === 'family' ? `, combined family income ${parsedCombinedIncome}, ${numChildren} dependent children` : ''
+              }, ${hasPHI ? 'has' : 'no'} private health insurance, tax year ${year}. 
+              
+              Deductions:
+              ${deductionsState.wfh_hours ? `- Working from home: ${deductionsState.wfh_hours} hours, fixed rate method: ${deductionsState.wfh_use_fixed_rate}` : ''}
+              ${deductionsState.cars.map((car, i) => `- Car ${i+1}: ${car.method}, ${car.kms ? car.kms + ' km' : ''} ${car.work_use_pct ? car.work_use_pct + '% work use' : ''}`).join('\n')}
+              ${deductionsState.phone_internet_work_use_pct ? `- Phone/Internet: ${deductionsState.phone_internet_work_use_pct}% work use` : ''}
+              ${deductionsState.phone_internet_incidental_claims ? '- Phone/Internet: incidental claims ($50)' : ''}
+              ${deductionsState.clothing_work_only_loads ? `- Clothing: ${deductionsState.clothing_work_only_loads} work-only loads` : ''}
+              ${deductionsState.clothing_mixed_loads ? `- Clothing: ${deductionsState.clothing_mixed_loads} mixed loads` : ''}
+              ${deductionsState.clothing_purchases ? `- Clothing purchases: $${deductionsState.clothing_purchases}` : ''}
+              ${deductionsState.tools.map((tool, i) => `- Tool ${i+1}: $${tool.cost}, ${tool.work_use_pct}% work use`).join('\n')}
+              ${deductionsState.donations_dgr_amount ? `- DGR donations: $${deductionsState.donations_dgr_amount}` : ''}
+              ${deductionsState.donations_bucket_amount ? `- Bucket donations: $${deductionsState.donations_bucket_amount}` : ''}
+              ${deductionsState.union_fees ? `- Union fees: $${deductionsState.union_fees}` : ''}
+              ${deductionsState.tax_agent_fees ? `- Tax agent fees: $${deductionsState.tax_agent_fees}` : ''}
+              ${deductionsState.personal_super_amount ? `- Personal super: $${deductionsState.personal_super_amount}` : ''}
+              
+              Please first calculate the deductions, then calculate the tax with those deductions applied.`
+            : `Calculate tax for: individual income ${parsedIncome}, filing status ${filingStatus}${
+                filingStatus === 'family' ? `, combined family income ${parsedCombinedIncome}, ${numChildren} dependent children` : ''
+              }, ${hasPHI ? 'has' : 'no'} private health insurance, tax year ${year}. Please use the calculate_tax tool and provide the exact numerical results.`
         }
       ];
 
@@ -155,7 +286,10 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
             takeHome: parseFloat(formatMatch[5].replace(/,/g, ''))
           };
         } else {
-          // Fallback: look for the exact format our system prompt produces
+          // Fallback: look for the exact format our system prompt produces (with or without deductions)
+          const grossMatch = fullResponse.match(/\*\*Gross Income\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
+          const deductionsMatch = fullResponse.match(/\*\*Total Deductions\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
+          const taxableMatch = fullResponse.match(/\*\*Taxable Income\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
           const baseMatch = fullResponse.match(/\*\*Base Tax\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
           const medicareMatch = fullResponse.match(/\*\*Medicare Levy\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
           const mlsMatch = fullResponse.match(/\*\*Medicare Levy Surcharge.*?\*\*:\s*\$([0-9,]+(?:\.[0-9]{2})?)/i);
@@ -172,6 +306,13 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
               total: parseFloat(totalMatch[1].replace(/,/g, '')),
               takeHome: takeHomeMatch ? parseFloat(takeHomeMatch[1].replace(/,/g, '')) : parsedIncome - parseFloat(totalMatch[1].replace(/,/g, ''))
             };
+            
+            // Add deductions information if available
+            if (grossMatch && deductionsMatch && taxableMatch) {
+              parsedData.grossIncome = parseFloat(grossMatch[1].replace(/,/g, ''));
+              parsedData.totalDeductions = parseFloat(deductionsMatch[1].replace(/,/g, ''));
+              parsedData.taxableIncome = parseFloat(taxableMatch[1].replace(/,/g, ''));
+            }
           }
         }
       }
@@ -192,115 +333,33 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
   }
 
   return (
-    <section className="panel p-4 grid gap-3.5" aria-label="Form inputs">
-      <Field label="Your Individual Income" htmlFor="income" hint="Enter your personal annual taxable income. Use shortcuts like 80k." error={error}>
-        <input
-          id="income"
-          value={incomeInput}
-          onChange={(e) => setIncomeInput(e.target.value)}
-          placeholder="e.g., 85000"
-          inputMode="numeric"
-          aria-describedby="incomeHint"
-          className="w-full px-3.5 py-3 rounded-xl border border-border bg-[#0f1117] text-text outline-none focus:ring-2 focus:ring-accent/40"
+    <>
+      <section className="panel p-4 grid gap-3.5" aria-label="Form inputs">
+        <TaxInfoSection
+          incomeInput={incomeInput}
+          setIncomeInput={setIncomeInput}
+          combinedIncomeInput={combinedIncomeInput}
+          setCombinedIncomeInput={setCombinedIncomeInput}
+          year={year}
+          setYear={setYear}
+          hasPHI={hasPHI}
+          setHasPHI={setHasPHI}
+          filingStatus={filingStatus}
+          setFilingStatus={setFilingStatus}
+          numChildren={numChildren}
+          setNumChildren={setNumChildren}
+          error={error}
         />
-      </Field>
 
-      <Field label="Tax Year" htmlFor="year">
-        <select
-          id="year"
-          value={year}
-          onChange={(e) => setYear(e.target.value as TaxYear)}
-          className="w-full px-3.5 py-3 rounded-xl border border-border bg-[#0f1117] text-text outline-none focus:ring-2 focus:ring-accent/40"
-        >
-          <option>2024–25</option>
-          <option>2023–24</option>
-        </select>
-      </Field>
+        <DeductionsSection />
 
-      <div className="grid gap-1.5" role="radiogroup" aria-label="Filing status">
-        <label className="font-semibold text-sm text-[#cfd3da]">Filing Status</label>
-        <div className="flex gap-3.5">
-          <label className="inline-flex items-center gap-2">
-            <input 
-              type="radio" 
-              name="filing" 
-              checked={filingStatus === 'single'} 
-              onChange={() => setFilingStatus('single')} 
-            />
-            <span>Single</span>
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input 
-              type="radio" 
-              name="filing" 
-              checked={filingStatus === 'family'} 
-              onChange={() => setFilingStatus('family')} 
-            />
-            <span>Family/Couple</span>
-          </label>
-        </div>
-      </div>
+        <Button id="calcBtn" type="button" onClick={calculate} loading={loading}>Calculate</Button>
 
-      {filingStatus === 'family' && (
-        <>
-          <Field label="Combined Family Income" htmlFor="combinedIncome" hint="Total household income for MLS calculation.">
-            <input
-              id="combinedIncome"
-              value={combinedIncomeInput}
-              onChange={(e) => setCombinedIncomeInput(e.target.value)}
-              placeholder="e.g., 150000"
-              inputMode="numeric"
-              className="w-full px-3.5 py-3 rounded-xl border border-border bg-[#0f1117] text-text outline-none focus:ring-2 focus:ring-accent/40"
-            />
-          </Field>
-
-          <Field label="Number of Dependent Children" htmlFor="children">
-            <input
-              id="children"
-              type="number"
-              min="0"
-              max="10"
-              value={numChildren}
-              onChange={(e) => setNumChildren(parseInt(e.target.value) || 0)}
-              placeholder="0"
-              className="w-full px-3.5 py-3 rounded-xl border border-border bg-[#0f1117] text-text outline-none focus:ring-2 focus:ring-accent/40"
-            />
-          </Field>
-        </>
-      )}
-
-      <div className="grid gap-1.5" role="radiogroup" aria-label="Private health insurance">
-        <label className="font-semibold text-sm text-[#cfd3da]">
-          Private Health Insurance {filingStatus === 'family' && '(All Family Members)'}
-        </label>
-        <div className="flex gap-3.5">
-          <label className="inline-flex items-center gap-2">
-            <input type="radio" name="phi" checked={hasPHI} onChange={() => setHasPHI(true)} />
-            <span>Yes</span>
-          </label>
-          <label className="inline-flex items-center gap-2">
-            <input type="radio" name="phi" checked={!hasPHI} onChange={() => setHasPHI(false)} />
-            <span>No</span>
-          </label>
-        </div>
-      </div>
-
-      <Button id="calcBtn" type="button" onClick={calculate} loading={loading}>Calculate</Button>
-
-      {result && (
-        <div className="grid gap-2 border-t border-dashed border-border pt-3" id="results">
-          <div className="kv"><span>Total tax ({year})</span><strong id="r-total">{currency(result.total)}</strong></div>
-          <div className="kv"><span>Take-home pay</span><strong id="r-takehome">{currency(result.takeHome)}</strong></div>
-          <div className="kv"><span>Base tax</span><span id="r-base">{currency(result.base)}</span></div>
-          <div className="kv"><span>Medicare Levy</span><span id="r-levy">{currency(result.levy)}</span></div>
-          <div className="kv"><span>Medicare Levy Surcharge</span><span id="r-mls">{currency(result.mls)}</span></div>
-          {result.lito > 0 && (
-            <div className="kv"><span>Low Income Tax Offset</span><span id="r-lito" style={{color: '#10b981'}}>-{currency(result.lito)}</span></div>
-          )}
-        </div>
-      )}
+        {result && <TaxResults result={result} year={year} />}
 
       <p className="text-muted text-xs">Data is based on current ATO rules. Estimates are for guidance only. Please consult a professional for complex cases.</p>
-    </section>
+      </section>
+      
+    </>
   );
 }

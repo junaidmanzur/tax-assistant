@@ -40,23 +40,71 @@
   "medicare_levy_surcharge": {
     "private_health_exempt": true,
     "single_tiers": [
-      { "min_income": 0, "max_income": 97000, "rate": 0.0 },
-      { "min_income": 97001, "max_income": 113000, "rate": 0.01 },
-      { "min_income": 113001, "max_income": 151000, "rate": 0.0125 },
-      { "min_income": 151001, "max_income": null, "rate": 0.015 }
+      {
+        "min_income": 0,
+        "max_income": 97000,
+        "rate": 0.0
+      },
+      {
+        "min_income": 97001,
+        "max_income": 113000,
+        "rate": 0.01
+      },
+      {
+        "min_income": 113001,
+        "max_income": 151000,
+        "rate": 0.0125
+      },
+      {
+        "min_income": 151001,
+        "max_income": null,
+        "rate": 0.015
+      }
     ],
     "family_tiers": [
-      { "min_income": 0, "max_income": 194000, "rate": 0.0 },
-      { "min_income": 194001, "max_income": 226000, "rate": 0.01 },
-      { "min_income": 226001, "max_income": 302000, "rate": 0.0125 },
-      { "min_income": 302001, "max_income": null, "rate": 0.015 }
+      {
+        "min_income": 0,
+        "max_income": 194000,
+        "rate": 0.0
+      },
+      {
+        "min_income": 194001,
+        "max_income": 226000,
+        "rate": 0.01
+      },
+      {
+        "min_income": 226001,
+        "max_income": 302000,
+        "rate": 0.0125
+      },
+      {
+        "min_income": 302001,
+        "max_income": null,
+        "rate": 0.015
+      }
     ],
     "family_dependent_child_increment": 1500,
     "tiers": [
-      { "min_income": 0, "max_income": 97000, "rate": 0.0 },
-      { "min_income": 97001, "max_income": 113000, "rate": 0.01 },
-      { "min_income": 113001, "max_income": 151000, "rate": 0.0125 },
-      { "min_income": 151001, "max_income": null, "rate": 0.015 }
+      {
+        "min_income": 0,
+        "max_income": 97000,
+        "rate": 0.0
+      },
+      {
+        "min_income": 97001,
+        "max_income": 113000,
+        "rate": 0.01
+      },
+      {
+        "min_income": 113001,
+        "max_income": 151000,
+        "rate": 0.0125
+      },
+      {
+        "min_income": 151001,
+        "max_income": null,
+        "rate": 0.015
+      }
     ]
   },
   "low_income_tax_offset": {
@@ -73,5 +121,328 @@
     "include_LITO": true,
     "multiple_incomes_supported": false,
     "default_private_health": true
-  }
+  },
+  "deductions_2024_25": [
+    {
+      "id": "ded_wfh_fixed_rate",
+      "name": "Working from home – fixed rate method",
+      "category": "work-related",
+      "year": "2024-25",
+      "eligibility": [
+        "You worked from home to fulfil employment duties (not just occasionally checking emails).",
+        "You incurred additional running expenses as a result.",
+        "You keep a record of all hours worked from home for the year.",
+        "You have at least one bill/receipt for each type of expense covered."
+      ],
+      "calculation": {
+        "rate_per_hour": 0.70,
+        "covers": [
+          "electricity",
+          "gas",
+          "phone",
+          "internet",
+          "stationery",
+          "computer consumables"
+        ],
+        "can_also_claim": [
+          "decline in value of office furniture/equipment separately"
+        ]
+      },
+      "exclusions": [
+        "Occupancy expenses (rent, mortgage interest, rates).",
+        "Separate phone/internet/stationery claims when using this method."
+      ],
+      "record_keeping": "Full year log of hours worked from home + sample bills/receipts.",
+      "ato_sources": [
+        "https://www.ato.gov.au/individuals-and-families/income-deductions-and-offsets/working-from-home-expenses"
+      ],
+      "ui_prompts": [
+        "How many hours did you work from home in 2024–25?"
+      ]
+    },
+    {
+      "id": "ded_car_expenses",
+      "name": "Work-related car expenses",
+      "category": "work-related",
+      "year": "2024-25",
+      "eligibility": [
+        "You used your own car for work travel (excluding normal home-to-work commuting).",
+        "Travel directly between two jobs or between workplace and external work location."
+      ],
+      "calculation": {
+        "methods": [
+          {
+            "name": "Cents per kilometre",
+            "rate_per_km": 0.88,
+            "max_km": 5000,
+            "includes": [
+              "fuel",
+              "servicing",
+              "insurance",
+              "rego",
+              "depreciation"
+            ]
+          },
+          {
+            "name": "Logbook",
+            "logbook_period_weeks": 12,
+            "work_use_percent_applied_to": [
+              "fuel",
+              "servicing",
+              "insurance",
+              "interest/lease",
+              "depreciation"
+            ]
+          }
+        ]
+      },
+      "exclusions": [
+        "Commuting between home and regular workplace."
+      ],
+      "record_keeping": "Reasonable estimate of kms or valid logbook + receipts for actual costs if logbook method.",
+      "ato_sources": [
+        "https://www.ato.gov.au/individuals-and-families/income-deductions-and-offsets/vehicle-and-travel-expenses/car-expenses"
+      ],
+      "ui_prompts": [
+        "Which method do you want to use: cents/km or logbook?",
+        "How many work kilometres did you travel?"
+      ]
+    },
+    {
+      "id": "ded_mobile_internet",
+      "name": "Mobile phone and internet (work use)",
+      "category": "work-related",
+      "year": "2024-25",
+      "eligibility": [
+        "You paid for the plan/service yourself.",
+        "You can show work-related use proportion.",
+        "Not already claimed under WFH fixed rate method."
+      ],
+      "calculation": {
+        "simplified": {
+          "incidental_threshold": 50,
+          "per_call": 0.75,
+          "per_text": 0.10
+        },
+        "detailed": "Work use % of total bill"
+      },
+      "exclusions": [
+        "Double-claiming with WFH fixed rate for same hours."
+      ],
+      "record_keeping": "Itemised bills, diary over 4 weeks to show usage pattern.",
+      "ato_sources": [
+        "https://www.ato.gov.au/individuals-and-families/income-deductions-and-offsets/phone-data-and-internet-expenses"
+      ],
+      "ui_prompts": [
+        "What % of your phone/internet use was work-related?"
+      ]
+    },
+    {
+      "id": "ded_clothing_laundry",
+      "name": "Protective and occupation-specific clothing & laundry",
+      "category": "work-related",
+      "year": "2024-25",
+      "eligibility": [
+        "Protective clothing/footwear, compulsory uniforms, or occupation-specific clothing."
+      ],
+      "calculation": {
+        "laundry_per_load_work_only": 1.00,
+        "laundry_per_load_mixed": 0.50,
+        "evidence_required_over_laundry": 150,
+        "all_work_expenses_evidence_threshold": 300
+      },
+      "exclusions": [
+        "Conventional clothing (e.g., suits, business wear)."
+      ],
+      "record_keeping": "Receipts for purchases; diary/records for laundry loads; keep receipts if over $150 laundry or $300 total work expenses.",
+      "ato_sources": [
+        "https://www.ato.gov.au/individuals-and-families/income-deductions-and-offsets/clothing-laundry-and-dry-cleaning-expenses"
+      ],
+      "ui_prompts": [
+        "How many loads of work-only laundry?",
+        "How many loads of mixed-use laundry?"
+      ]
+    },
+    {
+      "id": "ded_tools_equipment",
+      "name": "Tools, equipment and other assets",
+      "category": "work-related",
+      "year": "2024-25",
+      "eligibility": [
+        "Asset is used mainly (>50%) for producing assessable income."
+      ],
+      "calculation": {
+        "immediate_deduction_threshold": 300,
+        "depreciate_if_above": true
+      },
+      "exclusions": [
+        "Private portion of cost must be excluded."
+      ],
+      "record_keeping": "Receipts; evidence of work-related % use.",
+      "ato_sources": [
+        "https://www.ato.gov.au/individuals-and-families/income-deductions-and-offsets/tools-equipment-and-other-assets"
+      ],
+      "ui_prompts": [
+        "What was the cost of the item?",
+        "What % is work use?"
+      ]
+    },
+    {
+      "id": "ded_union_fees",
+      "name": "Union fees and professional subscriptions",
+      "category": "work-related",
+      "year": "2024-25",
+      "eligibility": [
+        "Membership fees paid to a trade union or professional/industry association related to your current employment."
+      ],
+      "calculation": "Full amount paid",
+      "record_keeping": "Receipts or statements from the organisation.",
+      "ato_sources": [
+        "https://www.ato.gov.au/individuals-and-families/income-deductions-and-offsets/union-and-professional-fees"
+      ],
+      "ui_prompts": [
+        "How much did you pay in union or professional fees?"
+      ]
+    },
+    {
+      "id": "ded_self_education",
+      "name": "Self-education expenses",
+      "category": "self-education",
+      "year": "2024-25",
+      "eligibility": [
+        "Course must maintain or improve skills in your current employment OR be likely to increase your income in your current role."
+      ],
+      "calculation": {
+        "includes": [
+          "course fees (not HECS-HELP)",
+          "textbooks",
+          "stationery",
+          "decline in value of equipment",
+          "certain travel"
+        ]
+      },
+      "exclusions": [
+        "Initial education to get a new job",
+        "Self-education with no connection to current income."
+      ],
+      "record_keeping": "Receipts, enrolment documents, travel records.",
+      "ato_sources": [
+        "https://www.ato.gov.au/individuals-and-families/income-deductions-and-offsets/self-education-expenses"
+      ],
+      "ui_prompts": [
+        "What type of course did you take?",
+        "How much did you spend on course fees and materials?"
+      ]
+    },
+    {
+      "id": "ded_donations",
+      "name": "Gifts and donations",
+      "category": "personal",
+      "year": "2024-25",
+      "eligibility": [
+        "Donation must be to a registered Deductible Gift Recipient (DGR).",
+        "Donation must be $2 or more."
+      ],
+      "calculation": {
+        "bucket_donation_limit_no_receipt": 10
+      },
+      "exclusions": [
+        "Donations where you receive a material benefit (e.g., raffle ticket, dinner)."
+      ],
+      "record_keeping": "Receipts for all claims except bucket donations up to $10 total.",
+      "ato_sources": [
+        "https://www.ato.gov.au/individuals-and-families/income-deductions-and-offsets/gifts-and-donations"
+      ],
+      "ui_prompts": [
+        "How much did you donate to DGR organisations?"
+      ]
+    },
+    {
+      "id": "ded_super_contributions",
+      "name": "Personal super contributions (deductible)",
+      "category": "personal",
+      "year": "2024-25",
+      "eligibility": [
+        "You made personal after-tax contributions to a complying super fund.",
+        "You lodged a valid notice of intent with your fund and received acknowledgment."
+      ],
+      "calculation": {
+        "cap_concessional": 30000
+      },
+      "exclusions": [
+        "Employer contributions (SG or salary sacrifice)."
+      ],
+      "record_keeping": "Acknowledgment from super fund; payment records.",
+      "ato_sources": [
+        "https://www.ato.gov.au/individuals-and-families/super-for-individuals/super-contributions/claiming-deductions-for-personal-super-contributions"
+      ],
+      "ui_prompts": [
+        "How much did you contribute personally to super?"
+      ]
+    },
+    {
+      "id": "ded_tax_agent_fees",
+      "name": "Cost of managing tax affairs",
+      "category": "personal",
+      "year": "2024-25",
+      "eligibility": [
+        "Expenses relate to managing your own tax affairs (tax agent/accountant fees, travel to see them, ATO interest/penalty management)."
+      ],
+      "calculation": "Full amount",
+      "record_keeping": "Receipts or invoices.",
+      "ato_sources": [
+        "https://www.ato.gov.au/individuals-and-families/income-deductions-and-offsets/cost-of-managing-tax-affairs"
+      ],
+      "ui_prompts": [
+        "How much did you pay in tax agent or accountant fees?"
+      ]
+    },
+    {
+      "id": "ded_income_protection",
+      "name": "Income protection insurance premiums",
+      "category": "personal",
+      "year": "2024-25",
+      "eligibility": [
+        "Premiums for a policy that insures against loss of your employment income."
+      ],
+      "calculation": "Full amount of qualifying premiums",
+      "exclusions": [
+        "Life insurance, trauma insurance, critical illness cover",
+        "Premiums paid via super fund."
+      ],
+      "record_keeping": "Policy documents and payment receipts.",
+      "ato_sources": [
+        "https://www.ato.gov.au/individuals-and-families/income-deductions-and-offsets/income-protection-insurance"
+      ],
+      "ui_prompts": [
+        "How much did you pay in income protection premiums?"
+      ]
+    },
+    {
+      "id": "ded_investment_expenses",
+      "name": "Interest, dividend and other investment deductions",
+      "category": "investment",
+      "year": "2024-25",
+      "eligibility": [
+        "Expenses must be incurred in earning interest, dividends or other investment income."
+      ],
+      "calculation": {
+        "examples": [
+          "interest on money borrowed to invest",
+          "investment account fees"
+        ]
+      },
+      "exclusions": [
+        "Upfront planning fees unless carrying on an investment business."
+      ],
+      "record_keeping": "Loan statements, account fee statements, receipts.",
+      "ato_sources": [
+        "https://www.ato.gov.au/individuals-and-families/income-deductions-and-offsets/investment-income-expenses"
+      ],
+      "ui_prompts": [
+        "What type of investment expenses did you incur?",
+        "How much did you spend on these expenses?"
+      ]
+    }
+  ]
 }
