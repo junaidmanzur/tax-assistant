@@ -235,6 +235,47 @@ export const useDeductionsStore = create<DeductionsStore>((set, get) => ({
   setTaxAgentFees: (tax_agent_fees) => set({ tax_agent_fees }),
   setPersonalSuperAmount: (personal_super_amount) => 
     set({ personal_super_amount }),
+    
+  // Template functionality
+  copyToTemplate: (name: string) => {
+    // Implementation would save current state as a template
+    console.log('copyToTemplate not implemented:', name);
+  },
+  
+  loadFromTemplate: (name: string) => {
+    // Implementation would load a saved template
+    console.log('loadFromTemplate not implemented:', name);
+  },
+  
+  getTemplateNames: () => {
+    // Implementation would return saved template names
+    return [];
+  },
+  
+  deleteTemplate: (name: string) => {
+    // Implementation would delete a saved template
+    console.log('deleteTemplate not implemented:', name);
+  },
+  
+  clearAllDeductions: () => {
+    set({
+      wfh_hours: undefined,
+      wfh_use_fixed_rate: true,
+      cars: [],
+      phone_internet_work_use_pct: undefined,
+      phone_internet_incidental_claims: false,
+      clothing_work_only_loads: undefined,
+      clothing_mixed_loads: undefined,
+      clothing_purchases: undefined,
+      tools: [],
+      donations_dgr_amount: undefined,
+      donations_bucket_amount: undefined,
+      donations_is_dgr_confirmed: false,
+      union_fees: undefined,
+      tax_agent_fees: undefined,
+      personal_super_amount: undefined,
+    });
+  },
 }))
 
 // Simplified selector hooks with shallow comparison

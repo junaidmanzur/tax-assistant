@@ -6,11 +6,12 @@ interface Props {
   hint?: string;
   error?: string | null;
   children: ReactNode;
+  className?: string;
 }
 
-export default function Field({ label, htmlFor, hint, error, children }: Props) {
+export default function Field({ label, htmlFor, hint, error, children, className }: Props) {
   return (
-    <div className="grid gap-1.5">
+    <div className={`grid gap-1.5 ${className || ''}`}>
       <label htmlFor={htmlFor} className="font-semibold text-sm text-[#cfd3da]">{label}</label>
       {children}
       {hint && <p className="text-muted text-xs">{hint}</p>}

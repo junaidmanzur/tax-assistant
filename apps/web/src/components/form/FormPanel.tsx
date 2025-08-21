@@ -309,9 +309,9 @@ export default function FormPanel({ syncedCalculation }: FormPanelProps) {
             
             // Add deductions information if available
             if (grossMatch && deductionsMatch && taxableMatch) {
-              parsedData.grossIncome = parseFloat(grossMatch[1].replace(/,/g, ''));
-              parsedData.totalDeductions = parseFloat(deductionsMatch[1].replace(/,/g, ''));
-              parsedData.taxableIncome = parseFloat(taxableMatch[1].replace(/,/g, ''));
+              (parsedData as any).grossIncome = parseFloat(grossMatch[1].replace(/,/g, ''));
+              (parsedData as any).totalDeductions = parseFloat(deductionsMatch[1].replace(/,/g, ''));
+              (parsedData as any).taxableIncome = parseFloat(taxableMatch[1].replace(/,/g, ''));
             }
           }
         }
