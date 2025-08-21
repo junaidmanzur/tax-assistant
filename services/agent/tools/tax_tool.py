@@ -46,14 +46,14 @@ def calculate_tax_wrapper(
         try:
             # Parse deductions data from JSON
             deductions_result = json.loads(deductions_data)
-            if deductions_result.get("success"):
-                total_deductions = deductions_result.get("total_allowed", 0.0)
-                deductions_breakdown = {
-                    "total_allowed": total_deductions,
-                    "line_items": deductions_result.get("line_items", []),
-                    "conflicts": deductions_result.get("conflicts", []),
-                    "warnings": deductions_result.get("warnings", [])
-                }
+            total_deductions = deductions_result.get("total_allowed", 0.0)
+            deductions_breakdown = {
+                "total_allowed": total_deductions,
+                "line_items": deductions_result.get("line_items", []),
+                "conflicts": deductions_result.get("conflicts", []),
+                "warnings": deductions_result.get("warnings", [])
+            }
+                
         except (json.JSONDecodeError, KeyError) as e:
             # If deductions data is invalid, proceed without deductions
             total_deductions = 0.0

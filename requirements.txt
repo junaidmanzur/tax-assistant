@@ -7,3 +7,5 @@ openai==1.99.1
 fastapi==0.116.1
 uvicorn==0.35.0
 python-dotenv==1.1.1
+langfuse>=3.0.0
+httpx>=0.25.0
