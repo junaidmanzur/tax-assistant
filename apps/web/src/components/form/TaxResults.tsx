@@ -32,7 +32,7 @@ export default function TaxResults({ result, year }: TaxResultsProps) {
           </div>
           <div className="kv">
             <span>Total deductions</span>
-            <span id="r-deductions" style={{color: '#10b981'}}>-{currency(result.totalDeductions)}</span>
+            <span id="r-deductions" style={{color: '#10b981'}}>-{currency(result.totalDeductions || 0)}</span>
           </div>
           <div className="kv">
             <span>Taxable income</span>
