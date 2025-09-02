@@ -1,6 +1,16 @@
 version: '3.8'
 
+volumes:
+  qdrant_data:
+
 services:
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
   api-gateway:
     build:
       context: ../..
@@ -9,6 +19,8 @@ services:
       - "8000:8000"
     env_file:
       - ../../.env
+    depends_on:
+      - qdrant
 
   web:
     build:

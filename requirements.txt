@@ -9,3 +9,5 @@ uvicorn==0.35.0
 python-dotenv==1.1.1
 langfuse>=3.0.0
 httpx>=0.25.0
+qdrant-client>=1.7.0
+pydantic>=2.0.0

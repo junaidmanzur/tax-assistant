@@ -7,6 +7,12 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from agent.tools.tax_tool import calculate_tax_tool
 from agent.tools.deductions_tool import deductions_tool
+from agent.tools.knowledge_tool import (
+    search_tax_knowledge,
+    get_tax_concept_explanation, 
+    find_deduction_information,
+    get_calculation_help
+)
 from langfuse.langchain import CallbackHandler
 
 
@@ -44,7 +50,14 @@ system_prompt = load_system_prompt()
 # Create the agent
 memory = MemorySaver()
 model = init_chat_model("gpt-4o-mini", model_provider="openai")
-tools = [calculate_tax_tool, deductions_tool]
+tools = [
+    calculate_tax_tool, 
+    deductions_tool,
+    search_tax_knowledge,
+    get_tax_concept_explanation,
+    find_deduction_information,
+    get_calculation_help
+]
 agent = create_react_agent(model, tools, checkpointer=memory, state_modifier=system_prompt)
 
 
