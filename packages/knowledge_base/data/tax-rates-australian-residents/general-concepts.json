@@ -1,0 +1,47 @@
+[
+  {
+    "id": "australian_resident_definition",
+    "title": "Who is an Australian Resident for Tax Purposes",
+    "content": "Australian residents for tax purposes include Australian citizens living in Australia, people who normally live in Australia, and those who have been in Australia for more than half the income year (unless their usual home is overseas). Non-residents are taxed differently and don't get the tax-free threshold.",
+    "category": "concept",
+    "ato_url": "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents",
+    "keywords": ["Australian resident", "tax purposes", "definition", "non-resident", "tax-free threshold", "citizenship"],
+    "tax_year": "general"
+  },
+  {
+    "id": "progressive_tax_system_explained",
+    "title": "How Australia's Progressive Tax System Works",
+    "content": "Australia uses a progressive tax system where higher income is taxed at higher marginal rates. You only pay the higher rate on income above each bracket threshold, not your entire income. Each tax bracket applies only to the income earned within that range, making the system fairer for different income levels.",
+    "category": "concept",
+    "ato_url": "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents",
+    "keywords": ["progressive tax", "marginal rates", "tax brackets", "threshold", "fairer system", "income ranges"],
+    "tax_year": "general"
+  },
+  {
+    "id": "marginal_vs_average_tax_rate",
+    "title": "Marginal Tax Rate vs Average Tax Rate",
+    "content": "Your marginal tax rate is the percentage of tax you pay on your last dollar of income (highest bracket you reach). Your average tax rate is your total tax divided by total income. For example, earning $80,000 puts you in the 30% marginal bracket, but your average rate is much lower due to the tax-free threshold and lower brackets.",
+    "category": "concept",
+    "ato_url": "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents",
+    "keywords": ["marginal tax rate", "average tax rate", "last dollar", "total tax", "example", "30%"],
+    "tax_year": "general"
+  },
+  {
+    "id": "tax_free_threshold_entitlement",
+    "title": "Tax-Free Threshold Entitlement Rules",
+    "content": "You're entitled to the full tax-free threshold if you're an Australian resident for the full income year, or became a resident during the year and remained one until year-end. If you have multiple jobs, only claim the threshold from your main job to avoid having too little tax withheld.",
+    "category": "concept",
+    "ato_url": "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents",
+    "keywords": ["tax-free threshold", "entitlement", "multiple jobs", "main job", "withholding", "Australian resident"],
+    "tax_year": "general"
+  },
+  {
+    "id": "tax_calculation_example_explanation",
+    "title": "How Tax is Calculated - Step by Step Example",
+    "content": "Tax calculation example for $70,000 income: Step 1: $0-$18,200 = $0 tax. Step 2: $18,201-$45,000 = $4,288 tax (16% × $26,800). Step 3: $45,001-$70,000 = $7,500 tax (30% × $25,000). Total income tax = $11,788 before Medicare levy. This shows how each bracket applies only to income within that range.",
+    "category": "concept",
+    "ato_url": "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents",
+    "keywords": ["tax calculation", "example", "$70,000", "step by step", "brackets", "$11,788", "medicare levy"],
+    "tax_year": "general"
+  }
+]
