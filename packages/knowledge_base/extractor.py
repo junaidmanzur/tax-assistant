@@ -481,9 +481,8 @@ class ATOContentExtractor:
         if chunk_num > 0:
             anchor = f"{anchor}-part-{chunk_num + 1}"
         
-        # Determine effective years and tags
+        # Determine effective years; no tags (removed as requested)
         effective_years = self._extract_years_from_content(content, section_title)
-        tags = self._generate_tags(content, section_title, page_title)
         
         chunk_id = f"{metadata['domain'].replace('.', '_')}_{anchor}_{metadata['retrieved_at'].replace('-', '')}"
         
@@ -505,7 +504,7 @@ class ATOContentExtractor:
             last_modified_header=metadata['last_modified_header'],
             retrieved_at=metadata['retrieved_at'],
             effective_years=effective_years,
-            tags=tags
+            tags=[]
         )
     
     def _extract_section_chunk(self, heading: Tag, all_headings: List[Tag], 
@@ -547,9 +546,8 @@ class ATOContentExtractor:
         # Clean the content
         content = self._clean_content(content)
         
-        # Determine effective years and tags
+        # Determine effective years; no tags (removed)
         effective_years = self._extract_years_from_content(content, section_title)
-        tags = self._generate_tags(content, section_title, page_title)
         
         chunk_id = f"{metadata['domain'].replace('.', '_')}_{anchor}_{metadata['retrieved_at'].replace('-', '')}"
         
@@ -567,7 +565,7 @@ class ATOContentExtractor:
             last_modified_header=metadata['last_modified_header'],
             retrieved_at=metadata['retrieved_at'],
             effective_years=effective_years,
-            tags=tags
+            tags=[]
         )
     
     def _format_table(self, table: Tag, table_title: str) -> str:
@@ -742,8 +740,6 @@ class ATOContentExtractor:
             anchor = f"{anchor}-part-{chunk_num + 1}"
         
         effective_years = self._extract_years_from_content(content, table_title)
-        tags = self._generate_tags(content, table_title, page_title)
-        tags.append("table")
         
         chunk_id = f"{metadata['domain'].replace('.', '_')}_table_{anchor}_{metadata['retrieved_at'].replace('-', '')}"
         
@@ -765,7 +761,7 @@ class ATOContentExtractor:
             last_modified_header=metadata['last_modified_header'],
             retrieved_at=metadata['retrieved_at'],
             effective_years=effective_years,
-            tags=tags
+            tags=[]
         )
     
     def _extract_table_chunk(self, table: Tag, metadata: Dict[str, Any], page_title: str) -> Optional[KnowledgeEntry]:
@@ -792,8 +788,6 @@ class ATOContentExtractor:
         table_heading = table.find_previous(['h2', 'h3', 'h4']) if hasattr(table, 'find_previous') else None
         anchor = self._extract_anchor_from_element(table_heading) or self._generate_anchor(table_title)
         effective_years = self._extract_years_from_content(content, table_title)
-        tags = self._generate_tags(content, table_title, page_title)
-        tags.append("table")
         
         chunk_id = f"{metadata['domain'].replace('.', '_')}_table_{anchor}_{metadata['retrieved_at'].replace('-', '')}"
         
@@ -811,7 +805,7 @@ class ATOContentExtractor:
             last_modified_header=metadata['last_modified_header'],
             retrieved_at=metadata['retrieved_at'],
             effective_years=effective_years,
-            tags=tags
+            tags=[]
         )
     
     def _clean_content(self, content: str) -> str:
@@ -890,47 +884,7 @@ class ATOContentExtractor:
         
         return years[:5]  # Limit to first 5 years to avoid noise
     
-    def _generate_tags(self, content: str, section: str, page_title: str) -> List[str]:
-        """Generate relevant tags based on generic content structure analysis."""
-        tags = []
-        
-        # Add domain from content if available
-        domain_patterns = [r'(\w+\.gov\.au)', r'(\w+\.com\.au)', r'(\w+\.org\.au)', r'(\w+\.edu\.au)']
-        combined_text = (content + " " + section + " " + page_title).lower()
-        
-        for pattern in domain_patterns:
-            matches = re.findall(pattern, combined_text)
-            for match in matches:
-                # Extract main domain name (e.g., 'ato' from 'ato.gov.au')
-                domain_name = match.split('.')[0]
-                if len(domain_name) > 2:  # Avoid very short meaningless domains
-                    tags.append(domain_name)
-                break  # Only take the first domain found
-        
-        # Content structure tags
-        if any(word in section.lower() for word in ['example', 'examples', 'sample']):
-            tags.append('examples')
-        
-        if any(word in section.lower() for word in ['table', 'data', 'rates', 'amounts']):
-            tags.append('tabular-data')
-        
-        if any(word in section.lower() for word in ['warning', 'note', 'important', 'caution']):
-            tags.append('important-info')
-        
-        if any(word in section.lower() for word in ['calculation', 'formula', 'method']):
-            tags.append('calculations')
-        
-        # Generic content type indicators
-        if len(content) > 2000:
-            tags.append('detailed-content')
-        elif len(content) < 500:
-            tags.append('brief-content')
-        
-        # Check for numerical content
-        if re.search(r'\$\d+', content) or re.search(r'\d+%', content):
-            tags.append('financial-data')
-        
-        return list(set(tags))  # Remove duplicates
+    # Tags generation removed – data will not include tags
 
 
 def extract_ato_knowledge(use_sitemap: bool = True) -> List[KnowledgeEntry]:
