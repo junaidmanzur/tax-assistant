@@ -294,11 +294,6 @@ class ATOContentExtractor:
         # Join all content
         full_content = ' '.join(content_parts)
         
-        # Extract structured information
-        structured_info = self._extract_structured_info(full_content, section_title)
-        if structured_info:
-            full_content = f"{full_content}\n\nKey Information: {structured_info}"
-        
         # Clean the content
         full_content = self._clean_content(full_content)
         
@@ -421,12 +416,7 @@ class ATOContentExtractor:
         if len(content) < 50:
             return None
         
-        # Extract structured information and enhance content
-        structured_info = self._extract_structured_info(content, section_title)
-        if structured_info:
-            content = f"{content}\n\nKey Information: {structured_info}"
-        
-        # Clean the enhanced content
+        # Clean the content
         content = self._clean_content(content)
         
         # Determine effective years and tags
@@ -452,6 +442,75 @@ class ATOContentExtractor:
             tags=tags
         )
     
+    def _format_table(self, table: Tag, table_title: str) -> str:
+        """Format table content in clean, natural format for RAG."""
+        if not table:
+            return ""
+            
+        content_parts = [table_title]  # Just the title, no "Table:" prefix
+        
+        # Extract table headers
+        headers = []
+        header_row = table.find('thead')
+        if header_row:
+            header_cells = header_row.find_all(['th', 'td'])
+        else:
+            # Try to find headers in first row
+            first_row = table.find('tr')
+            if first_row:
+                header_cells = first_row.find_all(['th', 'td'])
+            else:
+                header_cells = []
+        
+        for cell in header_cells:
+            cell_text = cell.get_text(strip=True)
+            if cell_text:
+                headers.append(cell_text)
+        
+        # Add headers as a simple line
+        if headers:
+            content_parts.append(" | ".join(headers))
+            content_parts.append("")  # Empty line for separation
+        
+        # Extract table rows (skip header row if it exists)
+        tbody = table.find('tbody')
+        if tbody:
+            rows = tbody.find_all('tr')
+        else:
+            rows = table.find_all('tr')
+            # Skip first row if it contains headers
+            if rows and all(cell.name == 'th' for cell in rows[0].find_all(['th', 'td'])):
+                rows = rows[1:]
+        
+        # Process each data row
+        for row in rows:
+            cells = row.find_all(['td', 'th'])
+            row_data = []
+            
+            for cell in cells:
+                cell_text = cell.get_text(strip=True)
+                # Clean and normalize cell content
+                if cell_text:
+                    # Handle currency and percentage formatting
+                    cell_text = re.sub(r'\$(\d+),(\d{3})', r'$\1,\2', cell_text)
+                    cell_text = re.sub(r'(\d+)\s*%', r'\1%', cell_text)
+                    cell_text = re.sub(r'(\d+)\s*c\b', r'\1 cents', cell_text)
+                    row_data.append(cell_text)
+                else:
+                    row_data.append("")
+            
+            if row_data:
+                # Skip header row duplicates (check if row data matches headers)
+                if headers and row_data == headers:
+                    continue
+                
+                # Simple pipe-separated format
+                clean_row = " | ".join(row_data)
+                if clean_row.strip():  # Only add non-empty rows
+                    content_parts.append(clean_row)
+        
+        return "\n".join(content_parts)
+    
     def _extract_table_chunks_with_overlap(self, table: Tag, metadata: Dict[str, Any], page_title: str, soup_context: BeautifulSoup = None) -> List[KnowledgeEntry]:
         """Extract table content with chunking and overlap if needed."""
         chunks = []
@@ -466,37 +525,20 @@ class ATOContentExtractor:
             if prev_heading:
                 table_title = prev_heading.get_text(strip=True)
             else:
-                table_title = "Tax Table"
+                table_title = "Data Table"
         
-        # Extract table content
-        content_parts = []
+        # Extract and format table content for better readability
+        full_content = self._format_table(table, table_title)
         
-        # Add table header
-        thead = table.find('thead')
-        if thead:
-            headers = [th.get_text(strip=True) for th in thead.find_all(['th', 'td'])]
-            content_parts.append(" | ".join(headers))
-        
-        # Add table rows
-        tbody = table.find('tbody') or table
-        for row in tbody.find_all('tr'):
-            cells = [td.get_text(strip=True) for td in row.find_all(['td', 'th'])]
-            if cells:
-                content_parts.append(" | ".join(cells))
-        
-        if not content_parts:
+        if not full_content:
             return chunks
         
-        # Join all table content
-        full_content = "\n".join(content_parts)
-        
-        # Extract structured information and enhance content
-        structured_info = self._extract_structured_info(full_content, table_title)
-        if structured_info:
-            full_content = f"{full_content}\n\nKey Information: {structured_info}"
-        
-        # Clean the enhanced content
-        full_content = self._clean_content(full_content)
+        # Get table headers for potential reuse in chunks
+        content_lines = full_content.split('\n')
+        header_info = []
+        for line in content_lines[:3]:  # Check first few lines for headers
+            if line.startswith('Table:') or line.startswith('Columns:'):
+                header_info.append(line)
         
         # Split table into chunks with 300-800 token range and 10-15% overlap if needed
         target_size = 2400  # ~600 tokens
@@ -525,19 +567,28 @@ class ATOContentExtractor:
                 
                 # For tables, try to break at row boundaries
                 if end < len(full_content):
-                    # Look for newline (row boundary) within last 300 chars
+                    # Look for "Row " markers or newlines within last 300 chars
                     search_start = max(end - 300, start)
-                    newlines = [i for i, char in enumerate(full_content[search_start:end]) if char == '\n']
-                    if newlines:
-                        end = search_start + newlines[-1] + 1
+                    search_text = full_content[search_start:end]
+                    
+                    # Look for row boundaries
+                    row_matches = [m.start() for m in re.finditer(r'\nRow \d+', search_text)]
+                    if row_matches:
+                        end = search_start + row_matches[-1] + 1
+                    else:
+                        # Fallback to newline boundaries
+                        newlines = [i for i, char in enumerate(search_text) if char == '\n']
+                        if newlines:
+                            end = search_start + newlines[-1] + 1
                 
                 chunk_content = full_content[start:end].strip()
                 
                 # Ensure each chunk has table headers if this is not the first chunk
-                if chunk_num > 0 and content_parts:
-                    header_row = content_parts[0]  # First row is usually headers
-                    if header_row not in chunk_content:
-                        chunk_content = f"{header_row}\n{chunk_content}"
+                if chunk_num > 0 and header_info:
+                    # Check if headers are already present
+                    if not any(header in chunk_content for header in header_info):
+                        header_text = '\n'.join(header_info)
+                        chunk_content = f"{header_text}\n\n{chunk_content}"
                 
                 if len(chunk_content) >= 50:  # Minimum viable content
                     chunks.append(self._create_table_knowledge_entry(
@@ -590,7 +641,7 @@ class ATOContentExtractor:
         )
     
     def _extract_table_chunk(self, table: Tag, metadata: Dict[str, Any], page_title: str) -> Optional[KnowledgeEntry]:
-        """Extract a table as a separate chunk."""
+        """Extract a table as a separate chunk (legacy method - prefer _extract_table_chunks_with_overlap)."""
         # Get table caption first (preferred)
         caption = table.find('caption')
         if caption:
@@ -601,35 +652,13 @@ class ATOContentExtractor:
             if prev_heading:
                 table_title = prev_heading.get_text(strip=True)
             else:
-                table_title = "Tax Table"
+                table_title = "Data Table"
         
-        # Extract table content
-        content_parts = []
+        # Extract and format table content for better readability
+        content = self._format_table(table, table_title)
         
-        # Add table header
-        thead = table.find('thead')
-        if thead:
-            headers = [th.get_text(strip=True) for th in thead.find_all(['th', 'td'])]
-            content_parts.append(" | ".join(headers))
-        
-        # Add table rows
-        tbody = table.find('tbody') or table
-        for row in tbody.find_all('tr'):
-            cells = [td.get_text(strip=True) for td in row.find_all(['td', 'th'])]
-            if cells:
-                content_parts.append(" | ".join(cells))
-        
-        if not content_parts:
+        if not content or len(content) < 50:
             return None
-        
-        content = "\n".join(content_parts)
-        # Extract structured information and enhance content
-        structured_info = self._extract_structured_info(content, table_title)
-        if structured_info:
-            content = f"{content}\n\nKey Information: {structured_info}"
-        
-        # Clean the enhanced content
-        content = self._clean_content(content)
         
         # Generate metadata
         table_heading = table.find_previous(['h2', 'h3', 'h4']) if hasattr(table, 'find_previous') else None
@@ -718,106 +747,66 @@ class ATOContentExtractor:
         anchor = re.sub(r'[-\s]+', '-', anchor)
         return anchor.strip('-')
     
-    def _extract_structured_info(self, content: str, section: str) -> str:
-        """Extract structured information and format as readable text."""
-        structured_items = []
-        
-        # Extract tax rates (percentages and cents)
-        rate_matches = re.finditer(r'(\d+(?:\.\d+)?)\s*(?:cents?|c)\s*(?:per|for every)\s*\$?1', content, re.IGNORECASE)
-        for match in rate_matches:
-            structured_items.append(f"Tax rate: {match.group(1)} cents per dollar")
-        
-        # Extract income thresholds
-        threshold_matches = re.finditer(r'\$(\d+(?:,\d+)*)', content)
-        seen_thresholds = set()
-        for match in threshold_matches:
-            amount = match.group(0)  # Keep original format with commas
-            if amount not in seen_thresholds:
-                structured_items.append(f"Income threshold: {amount}")
-                seen_thresholds.add(amount)
-        
-        # Extract percentages
-        percent_matches = re.finditer(r'(\d+(?:\.\d+)?)\s*%', content)
-        seen_percentages = set()
-        for match in percent_matches:
-            rate = f"{match.group(1)}%"
-            if rate not in seen_percentages:
-                structured_items.append(f"Rate: {rate}")
-                seen_percentages.add(rate)
-        
-        # Extract year ranges
-        year_matches = re.finditer(r'20\d{2}[-–]?\d{2}', content)
-        seen_years = set()
-        for match in year_matches:
-            year = match.group(0).replace('–', '-')
-            if year not in seen_years:
-                structured_items.append(f"Tax year: {year}")
-                seen_years.add(year)
-        
-        # Extract Medicare levy specific info
-        if 'medicare' in section.lower():
-            if '2%' in content:
-                structured_items.append("Medicare levy: 2% of taxable income")
-            if 'surcharge' in content.lower():
-                structured_items.append("Medicare levy surcharge applies to high earners without private health insurance")
-        
-        # Remove duplicates while preserving order
-        unique_items = []
-        for item in structured_items:
-            if item not in unique_items:
-                unique_items.append(item)
-        
-        return '; '.join(unique_items) if unique_items else ""
     
     def _extract_years_from_content(self, content: str, title: str) -> List[str]:
-        """Extract effective years from content and title."""
+        """Extract year references from content and title for temporal context."""
         years = []
         
-        # Look for year patterns like "2025-26", "2024-25"
-        year_matches = re.findall(r'20\d{2}[-–]?\d{2}', content + " " + title)
+        # Look for various year patterns: "2025", "2024-25", "2025-26"
+        combined_text = content + " " + title
+        year_matches = re.findall(r'20\d{2}(?:[-–]\d{2})?', combined_text)
         for match in year_matches:
             normalized = match.replace('–', '-')  # Normalize dash
             if normalized not in years:
                 years.append(normalized)
         
-        return years
+        return years[:5]  # Limit to first 5 years to avoid noise
     
     def _generate_tags(self, content: str, section: str, page_title: str) -> List[str]:
-        """Generate relevant tags based on content analysis."""
+        """Generate relevant tags based on generic content structure analysis."""
         tags = []
         
-        # Domain-specific tags
-        if 'ato.gov.au' in content.lower():
-            tags.append('ato')
+        # Add domain from content if available
+        domain_patterns = [r'(\w+\.gov\.au)', r'(\w+\.com\.au)', r'(\w+\.org\.au)', r'(\w+\.edu\.au)']
+        combined_text = (content + " " + section + " " + page_title).lower()
         
-        # Tax type tags
-        if any(word in content.lower() for word in ['individual', 'resident', 'personal']):
-            tags.append('individual-tax')
+        for pattern in domain_patterns:
+            matches = re.findall(pattern, combined_text)
+            for match in matches:
+                # Extract main domain name (e.g., 'ato' from 'ato.gov.au')
+                domain_name = match.split('.')[0]
+                if len(domain_name) > 2:  # Avoid very short meaningless domains
+                    tags.append(domain_name)
+                break  # Only take the first domain found
         
-        if any(word in content.lower() for word in ['rate', 'bracket', 'threshold']):
-            tags.append('tax-rates')
-        
-        if 'medicare' in content.lower():
-            tags.append('medicare-levy')
-        
-        if 'surcharge' in content.lower():
-            tags.append('medicare-levy-surcharge')
-        
-        if any(word in content.lower() for word in ['deduction', 'claim', 'expense']):
-            tags.append('deductions')
-        
-        # Content type tags
-        if any(word in section.lower() for word in ['example', 'calculation']):
+        # Content structure tags
+        if any(word in section.lower() for word in ['example', 'examples', 'sample']):
             tags.append('examples')
         
-        if any(word in section.lower() for word in ['warning', 'note', 'important']):
-            tags.append('warnings')
+        if any(word in section.lower() for word in ['table', 'data', 'rates', 'amounts']):
+            tags.append('tabular-data')
+        
+        if any(word in section.lower() for word in ['warning', 'note', 'important', 'caution']):
+            tags.append('important-info')
+        
+        if any(word in section.lower() for word in ['calculation', 'formula', 'method']):
+            tags.append('calculations')
+        
+        # Generic content type indicators
+        if len(content) > 2000:
+            tags.append('detailed-content')
+        elif len(content) < 500:
+            tags.append('brief-content')
+        
+        # Check for numerical content
+        if re.search(r'\$\d+', content) or re.search(r'\d+%', content):
+            tags.append('financial-data')
         
         return list(set(tags))  # Remove duplicates
 
 
 def extract_ato_knowledge(use_sitemap: bool = True) -> List[KnowledgeEntry]:
-    """Extract knowledge from specified ATO URLs and optionally from sitemap discovery."""
+    """Extract knowledge from specified URLs and optionally from sitemap discovery."""
     extractor = ATOContentExtractor(rate_limit_delay=3.0, max_retries=3)
     
     target_urls = [

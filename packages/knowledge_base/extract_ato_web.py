@@ -20,8 +20,9 @@ def main():
     # Convert to dictionaries for JSON serialization
     all_data = [entry.dict() for entry in entries]
     
-    # Save to JSON file in atoweb directory
-    output_file = Path("data/atoweb/tax-rates-australian-residents.json")
+    # Save to JSON file in data directory (relative to this script)
+    script_dir = Path(__file__).parent
+    output_file = script_dir / "data" / "tax-rates-australian-residents.json"
     output_file.parent.mkdir(exist_ok=True)
     
     with open(output_file, 'w', encoding='utf-8') as f:
