@@ -8,6 +8,7 @@ from typing import List, Dict, Any, Optional
 from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
 from bs4 import BeautifulSoup, Tag
+import json
 from knowledge_base.schemas import KnowledgeEntry
 
 
@@ -199,22 +200,149 @@ class ATOContentExtractor:
             except ValueError:
                 pass
         
-        # Extract claimed last updated date from page content
-        last_updated_text = soup.find(string=re.compile(r'Last updated:?\s*', re.IGNORECASE))
-        if last_updated_text:
-            # Extract date from text like "Last updated: 18 June 2025"
-            date_match = re.search(r'(\d{1,2})\s+(\w+)\s+(\d{4})', last_updated_text)
-            if date_match:
-                day, month_name, year = date_match.groups()
-                month_map = {
-                    'january': '01', 'february': '02', 'march': '03', 'april': '04',
-                    'may': '05', 'june': '06', 'july': '07', 'august': '08',
-                    'september': '09', 'october': '10', 'november': '11', 'december': '12'
-                }
-                month = month_map.get(month_name.lower(), '01')
-                metadata['last_updated_claimed'] = f"{year}-{month}-{day.zfill(2)}"
-        
+        # Extract claimed last updated date using multiple strategies
+        metadata['last_updated_claimed'] = (
+            self._extract_last_updated_from_meta(soup)
+            or self._extract_last_updated_from_json_ld(soup)
+            or self._extract_last_updated_from_time_tag(soup)
+            or self._extract_last_updated_from_text(soup)
+        )
+
         return metadata
+
+    def _normalize_date(self, text: str) -> Optional[str]:
+        """Normalize various date strings to YYYY-MM-DD. Returns None if not parseable."""
+        if not text:
+            return None
+        t = text.strip()
+
+        # ISO 8601 like 2025-06-18 or 2025-06-18T10:30:00Z
+        m = re.search(r'(20\d{2})-(\d{1,2})-(\d{1,2})', t)
+        if m:
+            y, mo, d = m.groups()
+            return f"{y}-{int(mo):02d}-{int(d):02d}"
+
+        # Month name maps (long and short)
+        month_map = {
+            'january': 1, 'jan': 1,
+            'february': 2, 'feb': 2,
+            'march': 3, 'mar': 3,
+            'april': 4, 'apr': 4,
+            'may': 5,
+            'june': 6, 'jun': 6,
+            'july': 7, 'jul': 7,
+            'august': 8, 'aug': 8,
+            'september': 9, 'sep': 9, 'sept': 9,
+            'october': 10, 'oct': 10,
+            'november': 11, 'nov': 11,
+            'december': 12, 'dec': 12,
+        }
+
+        # Patterns like 18 June 2025
+        m = re.search(r'\b(\d{1,2})\s+([A-Za-z]{3,9})\.?\s+(20\d{2})\b', t)
+        if m:
+            d, mon, y = m.groups()
+            mon_i = month_map.get(mon.lower())
+            if mon_i:
+                return f"{y}-{mon_i:02d}-{int(d):02d}"
+
+        # Patterns like June 18, 2025
+        m = re.search(r'\b([A-Za-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(20\d{2})\b', t)
+        if m:
+            mon, d, y = m.groups()
+            mon_i = month_map.get(mon.lower())
+            if mon_i:
+                return f"{y}-{mon_i:02d}-{int(d):02d}"
+
+        # Australian numeric dd/mm/yyyy
+        m = re.search(r'\b(\d{1,2})/(\d{1,2})/(\d{2,4})\b', t)
+        if m:
+            d, mo, y = m.groups()
+            y = f"20{y}" if len(y) == 2 else y
+            return f"{int(y):04d}-{int(mo):02d}-{int(d):02d}"
+
+        return None
+
+    def _extract_last_updated_from_meta(self, soup: BeautifulSoup) -> Optional[str]:
+        """Check common meta tags that carry modified/updated timestamps."""
+        meta_candidates = []
+        # property-based
+        meta_candidates.extend(soup.select('meta[property="article:modified_time"]'))
+        meta_candidates.extend(soup.select('meta[property="og:updated_time"]'))
+        meta_candidates.extend(soup.select('meta[property="dcterms.modified"], meta[property="dcterms:modified"]'))
+        # name-based
+        meta_candidates.extend(soup.select('meta[name="last-modified"], meta[name="modified"], meta[name="modified-date"], meta[name="updated"], meta[name="dateModified"], meta[name="DC.Date.Modified"], meta[name="dc.date.modified"], meta[name="dcterms.modified"]'))
+
+        for tag in meta_candidates:
+            content = tag.get('content') or tag.get('value')
+            normalized = self._normalize_date(content) if content else None
+            if normalized:
+                return normalized
+        return None
+
+    def _extract_last_updated_from_json_ld(self, soup: BeautifulSoup) -> Optional[str]:
+        """Parse JSON-LD for dateModified if present."""
+        for script in soup.find_all('script', attrs={'type': 'application/ld+json'}):
+            try:
+                data = json.loads(script.string or script.text or '{}')
+            except Exception:
+                continue
+            objs = data if isinstance(data, list) else [data]
+            for obj in objs:
+                if not isinstance(obj, dict):
+                    continue
+                for key in ['dateModified', 'dateUpdated', 'modified', 'lastModified']:
+                    if key in obj:
+                        normalized = self._normalize_date(str(obj[key]))
+                        if normalized:
+                            return normalized
+        return None
+
+    def _extract_last_updated_from_time_tag(self, soup: BeautifulSoup) -> Optional[str]:
+        """Look for <time datetime="..."> elements near update labels."""
+        time_tags = soup.select('time[datetime]')
+        for t in time_tags:
+            label_context = (t.get('class') or []) + ((t.parent.get('class') or []) if t.parent else [])
+            label_text = ' '.join(label_context).lower() + ' ' + (t.parent.get_text(' ', strip=True).lower() if t.parent else '')
+            if any(x in label_text for x in ['updated', 'modified', 'last updated', 'page last updated']):
+                normalized = self._normalize_date(t.get('datetime', ''))
+                if normalized:
+                    return normalized
+        for t in time_tags:
+            normalized = self._normalize_date(t.get('datetime', ''))
+            if normalized:
+                return normalized
+        return None
+
+    def _extract_last_updated_from_text(self, soup: BeautifulSoup) -> Optional[str]:
+        """Scan visible text for common ATO update labels and parse the date."""
+        patterns = [
+            r'page\s+last\s+updated[:\s]+(.{,40})',
+            r'last\s+updated[:\s]+(.{,40})',
+            r'last\s+modified[:\s]+(.{,40})',
+            r'updated\s+on[:\s]+(.{,40})',
+            r'content\s+last\s+updated[:\s]+(.{,40})',
+        ]
+
+        for el in soup.find_all(text=True):
+            text = (el or '').strip()
+            if not text:
+                continue
+            lower = text.lower()
+            for pat in patterns:
+                m = re.search(pat, lower, flags=re.IGNORECASE)
+                if m:
+                    candidate = m.group(1)
+                    candidate = candidate.split('\n')[0][:50]
+                    normalized = self._normalize_date(candidate)
+                    if normalized:
+                        return normalized
+            if re.search(r'last\s+(updated|modified)', lower):
+                normalized = self._normalize_date(text)
+                if normalized:
+                    return normalized
+        normalized = self._normalize_date(soup.get_text(' ', strip=True))
+        return normalized
     
     def _remove_boilerplate(self, soup: BeautifulSoup) -> BeautifulSoup:
         """Remove navigation, footers, sidebars, and other boilerplate content."""

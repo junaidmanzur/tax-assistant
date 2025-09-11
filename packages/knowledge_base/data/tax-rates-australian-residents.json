@@ -9,16 +9,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2025-26"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "c29b86ad2ea19ca31d2d51fbfcfaaea32adeaf14d92b5e0f0347d85f6e36b339"
@@ -33,16 +33,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2024-25"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "962f61126ab67ed32d55cbe638c58571b5b492b99be9f14f82868447590fbfe3"
@@ -57,16 +57,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2023-24"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "c8ef8dfa6a52bb2cd651ed4e2ac72d2bf1bb1cf587ba6a7d6f50a85e0972e54f"
@@ -81,16 +81,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2022-23"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "fbfd6f47aec8ea7c02af6a8c7b3007826e18eefc9a3fe03f7cc135bc64a539c7"
@@ -105,16 +105,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2021-22"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "e5ad9fa9c28117bbf0e03a239cdc414b4f5090849ad752a72f07d22dfea0c2a7"
@@ -129,16 +129,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2020-21"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "558b797be32c6e3fa4305485e8c9cfe4bdec9933382b52528adbd1433bdc0cf4"
@@ -153,16 +153,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2019-20"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "86d5159b513b601bf53baf1b776290a94e7798e7ba7fe53ade1ff689c084867d"
@@ -177,16 +177,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2018-19"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "0ef6bf06d72394b0c52c1eb02415519a48656696c7b63ff4eb24b59c797566f6"
@@ -201,16 +201,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2017-18"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "67b632fa04d646fa4d3642bb49677e7c1fc0d28f209299e59f6e8580dbe62692"
@@ -225,16 +225,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2016-17"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "2a276d508c45638b934d68cf03c22dfea95070dbc9204c699639824140258787"
@@ -249,16 +249,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2015-16"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "7a129fd5f92b466eb1b27511bcaee87cd1d22a09c70413a3dba4aba42ba8c48c"
@@ -273,16 +273,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2014-15"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "c1753360ec9d62613d2d90a83effc1ccf148c04f9d3198d3f7e918af7bcec6d3"
@@ -297,16 +297,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2013-14"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "2b49cc647d112b4d2205a899e8dee7bf6849cdfe6ed85171e0028cd252f9c621"
@@ -321,16 +321,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2012-13"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "6268aee3ea8c9b9546f9b2655c6b7a9711d2ee9a5e1bf6dc5ef329f619bc7e52"
@@ -345,16 +345,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2011-12"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "edfcb3b312847b544fdd9f2d95e3cb1f74957abf2e81e33dfbc5834c94ba5b21"
@@ -369,16 +369,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2010-11"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "4ed489d697bb473211099a1f2a2d63c5150806e4b49c9cf33807d38ae3cb0caa"
@@ -393,16 +393,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2009-10"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "80927ca7877b0f957530df479baa917b42790b23958c3aef7a83a2a68fd583b3"
@@ -417,16 +417,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2008-09"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "3af70ff964132c8a7d3b5ec165f7c756483263e3ff68d93083e147d9d652c796"
@@ -441,16 +441,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2007-08"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "deb4e1bcfe941af66945c0f4e51f5e0a73d6998e73119b34d74a3bcd987d50c2"
@@ -465,16 +465,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2006-07"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "5489c901d54772d50e6ecfe03320cd7a5149eb188a709bbc6717d487469564e0"
@@ -489,16 +489,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2005-06"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "4f57fee6e0b0bf6de6ebd443e9fd0ed233618475c5be70382fdc20364cbd7575"
@@ -513,16 +513,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2004-05"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "88bbe5d2b758f34b8b316ec2e5ae1cf9afc88cab35e044e7ee527f3a5844f1cd"
@@ -537,16 +537,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2003-04"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "03c4814bc0d676f1a7b53a7b8b61056b2d0248d26ecb4679c83d2d5f0ce06d0c"
@@ -561,16 +561,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2002-03"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "1ae6d56b0ebbd34c94032f1f0ddbdd7f13be7513cf1b8ca13cf7f0e973a5e711"
@@ -585,16 +585,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2001-02"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "ef5ff2f7a329732fdaa0d8e7407cb7ba5785ba99d47b3975120bfdcc06e858cf"
@@ -609,16 +609,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2000-01"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "97760acd4f064d9f4c22ca72c36fbf79d0071acaa26ebdaadfe36ef9bdc687c5"
@@ -633,16 +633,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2000"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "331760875de08ae1fe702e9d10ffc7a0a6151367ce06d6ec0c1186759aaf35e6"
@@ -657,14 +657,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "6996c3d02c0a4b66bc5f78611f21cd9418b9626cff79be5971bea8e5eb517cef"
@@ -679,14 +679,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "5ca9eae9c742d2080a9f48c88a08879c19d4166d869d4e0f989429a8445f8729"
@@ -701,14 +701,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "cee4edac31334e2eb9514e2ba27661561f3bf1d95e654dd57704b15cfed01186"
@@ -723,14 +723,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "13c50a062f15dbaba410887481d6f55933d45ba72717665768be9a56c21dc63f"
@@ -745,14 +745,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "28dff726b3f7f070e1541d66fec3ad40788259bbe33a1b67ec696394a43277c1"
@@ -767,14 +767,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "ed6e67ce98796a04821c5a94782aca4b992bdc8df79446881d0eef6e1417f487"
@@ -789,14 +789,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "f1667b8fcac329ef122725af185643d54eedbcdd7bb86c9f6ad3f56b31eeb610"
@@ -811,14 +811,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "bbb9df08937df2a5cdbe2417ea9b2e3eb517a3bce0b95072b43bd3fc67a35876"
@@ -833,13 +833,13 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
       "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "aaf500808de3a0eab1978f95649e9393ea9c0d08b62de7e15ef72918c21ce30d"
@@ -854,14 +854,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "1a138d6196aa9f1948437b59373a7099de20ffbdc77a01513283ec83a3b6b045"
@@ -876,14 +876,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "6e588eca23ee7063539451f12f995770f8409c3e2c358d4a9e8e9479083e15a0"
@@ -898,14 +898,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "1d79181652573fb1a5244140577bd60126ea0379826c5faa34c6e15b2240a133"
@@ -920,13 +920,13 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
       "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "2d26969f4afcd28dae432a23b05683f1776a6d328a65e309199743dbd5a8c97a"
@@ -941,14 +941,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "0d59fbd45851669f87729aac53a567c3a79fc0be6ab6295cfebf79342ca47bc1"
@@ -963,14 +963,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "67d24222dbcdeb4a8ee116934f46a3e8d0259acd94a0c3261ec889aed849f67c"
@@ -985,14 +985,14 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-17",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "748d2689e4318298ed629eb6fc607d10597e9c2b2b188d97686b9ccb1e2fb724"
@@ -1007,7 +1007,7 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-11",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
@@ -1029,16 +1029,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-11",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2025-26"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "9ac3a0169488aed506d4fbf63dd8c31312da0b6c33d60477d889de1d3d6b1908"
@@ -1053,16 +1053,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-11",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2024-25"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "338b2c7e260fc5a261a62f79d9393034e598be3c29687fa6886ff530d3f13c8d"
@@ -1077,16 +1077,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-11",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2023-24"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "03c8deeae4a58e2c9fad4286bb1737738a2844fb2ad754cd9c8f3df0358d60a7"
@@ -1101,7 +1101,7 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-11",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
@@ -1109,9 +1109,9 @@
       "2022-23"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "4b27e6aa7e8e5e49d008a44c6e346bd20781dd59cea13c4d0a34dccdb07402b5"
@@ -1126,16 +1126,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-11",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2013-14"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "92754dbf226cb26d47994032520369bfaa90f65c6e056edfc2a7bf3e1902d5dc"
@@ -1150,16 +1150,16 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-11",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
       "2012-13"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "73d8843091590bf2c6e06dba710018237803f53192c03569758c75bc516bd8be"
@@ -1174,7 +1174,7 @@
     "jurisdiction": "AU",
     "domain": "www.ato.gov.au",
     "source_type": "web",
-    "last_updated_claimed": null,
+    "last_updated_claimed": "2025-06-11",
     "last_modified_header": null,
     "retrieved_at": "2025-09-11",
     "effective_years": [
@@ -1182,9 +1182,9 @@
       "2011-12"
     ],
     "tags": [
-      "tabular-data",
-      "financial-data",
       "brief-content",
+      "financial-data",
+      "tabular-data",
       "table"
     ],
     "hash": "397975051b3ac9842992242efebaa4ead310848f769eb73222e4c5b51fceef47"
