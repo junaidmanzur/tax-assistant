@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 from dotenv import load_dotenv, find_dotenv
 from knowledge_base.schemas import KnowledgeEntry
 from knowledge_base.client import KnowledgeBaseClient
+from knowledge_base.extractor import extract_ato_knowledge
 
 # Load .env file from project root
 load_dotenv(find_dotenv())
@@ -59,17 +60,22 @@ class KnowledgeIndexer:
         
         return all_entries
     
-    def index_all_entries(self, force_reindex: bool = False) -> int:
+    def index_all_entries(self, force_reindex: bool = False, use_web_extraction: bool = False) -> int:
         """Load and index all entries into the vector database."""
         if force_reindex:
             print("Force reindexing: clearing existing collection...")
             # Note: In production, implement collection clearing
             # For now, we'll just add/update entries
         
-        entries = self.load_all_entries()
-        if not entries:
-            print("No entries found to index")
-            return 0
+        if use_web_extraction:
+            print("Extracting fresh content from ATO websites...")
+            entries = extract_ato_knowledge()
+            print(f"Extracted {len(entries)} entries from web")
+        else:
+            entries = self.load_all_entries()
+            if not entries:
+                print("No entries found to index")
+                return 0
         
         print(f"Indexing {len(entries)} entries into vector database...")
         self.client.add_entries_batch(entries)
@@ -96,16 +102,16 @@ class KnowledgeIndexer:
                 results["valid"].append(entry.id)
             
             # Check URL accessibility (basic format check)
-            if not entry.ato_url.startswith("https://www.ato.gov.au"):
-                results["warnings"].append(f"Non-ATO URL for {entry.id}: {entry.ato_url}")
+            if not entry.url.startswith("https://www.ato.gov.au"):
+                results["warnings"].append(f"Non-ATO URL for {entry.id}: {entry.url}")
             
             # Check content length
             if len(entry.content) < 100:
                 results["warnings"].append(f"Short content for {entry.id}: {len(entry.content)} chars")
             
-            # Check keywords
-            if len(entry.keywords) < 2:
-                results["warnings"].append(f"Few keywords for {entry.id}: {len(entry.keywords)}")
+            # Check tags
+            if len(entry.tags) < 2:
+                results["warnings"].append(f"Few tags for {entry.id}: {len(entry.tags)}")
         
         return results
     
@@ -115,29 +121,34 @@ class KnowledgeIndexer:
         
         stats = {
             "total_entries": len(entries),
-            "by_category": {},
-            "by_tax_year": {},
+            "by_domain": {},
+            "by_effective_years": {},
             "avg_content_length": 0,
-            "total_keywords": 0
+            "total_tags": 0,
+            "total_facts": 0
         }
         
         total_content_length = 0
-        all_keywords = set()
+        all_tags = set()
+        total_facts = 0
         
         for entry in entries:
-            # Category stats
-            stats["by_category"][entry.category] = stats["by_category"].get(entry.category, 0) + 1
+            # Domain stats
+            stats["by_domain"][entry.domain] = stats["by_domain"].get(entry.domain, 0) + 1
             
-            # Tax year stats
-            stats["by_tax_year"][entry.tax_year] = stats["by_tax_year"].get(entry.tax_year, 0) + 1
+            # Effective years stats
+            for year in entry.effective_years:
+                stats["by_effective_years"][year] = stats["by_effective_years"].get(year, 0) + 1
             
             # Content stats
             total_content_length += len(entry.content)
-            all_keywords.update(entry.keywords)
+            all_tags.update(entry.tags)
+            total_facts += len(entry.facts)
         
         if entries:
             stats["avg_content_length"] = total_content_length // len(entries)
-        stats["total_keywords"] = len(all_keywords)
+        stats["total_tags"] = len(all_tags)
+        stats["total_facts"] = total_facts
         
         return stats
 
@@ -152,9 +163,10 @@ def main():
     print("\n1. Current Statistics:")
     stats = indexer.get_stats()
     print(f"   Total entries: {stats['total_entries']}")
-    print(f"   Categories: {dict(stats['by_category'])}")
-    print(f"   Tax years: {dict(stats['by_tax_year'])}")
+    print(f"   Domains: {dict(stats['by_domain'])}")
+    print(f"   Effective years: {dict(stats['by_effective_years'])}")
     print(f"   Avg content length: {stats['avg_content_length']} chars")
+    print(f"   Total facts: {stats['total_facts']}")
     
     # Validate entries
     print("\n2. Validation Results:")
@@ -171,7 +183,8 @@ def main():
     # Index entries
     print("\n3. Indexing entries...")
     try:
-        indexed_count = indexer.index_all_entries()
+        # Use web extraction by default for fresh ATO content
+        indexed_count = indexer.index_all_entries(use_web_extraction=True)
         print(f"   Successfully indexed {indexed_count} entries")
     except Exception as e:
         print(f"   Error during indexing: {e}")

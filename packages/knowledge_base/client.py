@@ -57,8 +57,10 @@ class KnowledgeBaseClient:
     
     def add_entry(self, entry: KnowledgeEntry) -> None:
         """Add a knowledge entry to the vector database."""
-        # Create embedding from title + content + keywords for better search
-        search_text = f"{entry.title}. {entry.content}. Keywords: {', '.join(entry.keywords)}"
+        # Create embedding from title + content + tags for better search
+        search_text = f"{entry.title}. {entry.content}. Tags: {', '.join(entry.tags)}"
+        if entry.section:
+            search_text = f"{entry.section}. {search_text}"
         embedding = self._get_embedding(search_text)
         
         # Generate UUID for Qdrant point ID, but store original ID in payload
@@ -69,13 +71,21 @@ class KnowledgeBaseClient:
             id=point_id,
             vector=embedding,
             payload={
-                "id": entry.id,  # Store original string ID in payload
+                "id": entry.id,
+                "url": entry.url,
                 "title": entry.title,
+                "section": entry.section,
+                "anchor": entry.anchor,
                 "content": entry.content,
-                "category": entry.category,
-                "ato_url": entry.ato_url,
-                "keywords": entry.keywords,
-                "tax_year": entry.tax_year
+                "jurisdiction": entry.jurisdiction,
+                "domain": entry.domain,
+                "source_type": entry.source_type,
+                "last_updated_claimed": entry.last_updated_claimed,
+                "last_modified_header": entry.last_modified_header,
+                "retrieved_at": entry.retrieved_at,
+                "effective_years": entry.effective_years,
+                "tags": entry.tags,
+                "hash": entry.hash
             }
         )
         
@@ -88,7 +98,9 @@ class KnowledgeBaseClient:
         """Add multiple knowledge entries in batch."""
         points = []
         for entry in entries:
-            search_text = f"{entry.title}. {entry.content}. Keywords: {', '.join(entry.keywords)}"
+            search_text = f"{entry.title}. {entry.content}. Tags: {', '.join(entry.tags)}"
+            if entry.section:
+                search_text = f"{entry.section}. {search_text}"
             embedding = self._get_embedding(search_text)
             
             # Generate UUID for Qdrant point ID, but store original ID in payload
@@ -98,13 +110,21 @@ class KnowledgeBaseClient:
                 id=point_id,
                 vector=embedding,
                 payload={
-                    "id": entry.id,  # Store original string ID in payload
+                    "id": entry.id,
+                    "url": entry.url,
                     "title": entry.title,
+                    "section": entry.section,
+                    "anchor": entry.anchor,
                     "content": entry.content,
-                    "category": entry.category,
-                    "ato_url": entry.ato_url,
-                    "keywords": entry.keywords,
-                    "tax_year": entry.tax_year
+                    "jurisdiction": entry.jurisdiction,
+                    "domain": entry.domain,
+                    "source_type": entry.source_type,
+                    "last_updated_claimed": entry.last_updated_claimed,
+                    "last_modified_header": entry.last_modified_header,
+                    "retrieved_at": entry.retrieved_at,
+                    "effective_years": entry.effective_years,
+                    "tags": entry.tags,
+                    "hash": entry.hash
                 }
             )
             points.append(point)
@@ -118,13 +138,13 @@ class KnowledgeBaseClient:
         """Search for knowledge entries."""
         query_embedding = self._get_embedding(request.query)
         
-        # Build filter if category is specified
+        # Build filter if category is specified (map to tags)
         query_filter = None
         if request.category:
             query_filter = Filter(
                 must=[
                     FieldCondition(
-                        key="category",
+                        key="tags",
                         match=MatchValue(value=request.category)
                     )
                 ]
@@ -143,13 +163,21 @@ class KnowledgeBaseClient:
         results = []
         for hit in search_results.points:
             entry = KnowledgeEntry(
-                id=hit.payload["id"],  # Use original ID from payload
+                id=hit.payload["id"],
+                url=hit.payload["url"],
                 title=hit.payload["title"],
+                section=hit.payload.get("section"),
+                anchor=hit.payload.get("anchor"),
                 content=hit.payload["content"],
-                category=hit.payload["category"],
-                ato_url=hit.payload["ato_url"],
-                keywords=hit.payload["keywords"],
-                tax_year=hit.payload["tax_year"]
+                jurisdiction=hit.payload.get("jurisdiction", "AU"),
+                domain=hit.payload["domain"],
+                source_type=hit.payload.get("source_type", "web"),
+                last_updated_claimed=hit.payload.get("last_updated_claimed"),
+                last_modified_header=hit.payload.get("last_modified_header"),
+                retrieved_at=hit.payload["retrieved_at"],
+                effective_years=hit.payload.get("effective_years", []),
+                tags=hit.payload.get("tags", []),
+                hash=hit.payload.get("hash")
             )
             results.append(KnowledgeSearchResult(entry=entry, score=hit.score))
         
@@ -167,13 +195,21 @@ class KnowledgeBaseClient:
             if result:
                 hit = result[0]
                 return KnowledgeEntry(
-                    id=hit.payload["id"],  # Use original ID from payload
+                    id=hit.payload["id"],
+                    url=hit.payload["url"],
                     title=hit.payload["title"],
+                    section=hit.payload.get("section"),
+                    anchor=hit.payload.get("anchor"),
                     content=hit.payload["content"],
-                    category=hit.payload["category"],
-                    ato_url=hit.payload["ato_url"],
-                    keywords=hit.payload["keywords"],
-                    tax_year=hit.payload["tax_year"]
+                    jurisdiction=hit.payload.get("jurisdiction", "AU"),
+                    domain=hit.payload["domain"],
+                    source_type=hit.payload.get("source_type", "web"),
+                    last_updated_claimed=hit.payload.get("last_updated_claimed"),
+                    last_modified_header=hit.payload.get("last_modified_header"),
+                    retrieved_at=hit.payload["retrieved_at"],
+                    effective_years=hit.payload.get("effective_years", []),
+                    tags=hit.payload.get("tags", []),
+                    hash=hit.payload.get("hash")
                 )
         except Exception:
             pass

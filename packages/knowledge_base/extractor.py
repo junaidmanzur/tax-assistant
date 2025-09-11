@@ -1,0 +1,881 @@
+"""Web content extractor for ATO pages with RAG-friendly chunking strategy."""
+import re
+import requests
+import time
+import xml.etree.ElementTree as ET
+from datetime import datetime
+from typing import List, Dict, Any, Optional
+from urllib.parse import urljoin, urlparse
+from urllib.robotparser import RobotFileParser
+from bs4 import BeautifulSoup, Tag
+from knowledge_base.schemas import KnowledgeEntry
+
+
+class ATOContentExtractor:
+    """Extracts and chunks ATO web content for RAG optimization."""
+    
+    def __init__(self, rate_limit_delay: float = 2.0, max_retries: int = 3):
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (compatible; TaxAssistant/1.0; Educational Research; +https://github.com/example/tax-assistant)'
+        })
+        self.rate_limit_delay = rate_limit_delay
+        self.max_retries = max_retries
+        self.last_request_time = 0
+        self.robots_cache = {}
+        self.sitemap_cache = {}
+    
+    def _respect_rate_limit(self):
+        """Implement polite rate limiting between requests."""
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        if time_since_last < self.rate_limit_delay:
+            sleep_time = self.rate_limit_delay - time_since_last
+            print(f"Rate limiting: sleeping for {sleep_time:.1f}s")
+            time.sleep(sleep_time)
+        self.last_request_time = time.time()
+    
+    def _check_robots_txt(self, url: str) -> bool:
+        """Check if the URL is allowed by robots.txt."""
+        parsed_url = urlparse(url)
+        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        robots_url = urljoin(base_url, '/robots.txt')
+        
+        if base_url not in self.robots_cache:
+            try:
+                rp = RobotFileParser()
+                rp.set_url(robots_url)
+                self._respect_rate_limit()
+                rp.read()
+                self.robots_cache[base_url] = rp
+                print(f"Loaded robots.txt from {robots_url}")
+            except Exception as e:
+                print(f"Could not load robots.txt from {robots_url}: {e}")
+                # If we can't load robots.txt, assume it's allowed
+                return True
+        
+        robots_parser = self.robots_cache.get(base_url)
+        if robots_parser:
+            user_agent = self.session.headers.get('User-Agent', '*')
+            can_fetch = robots_parser.can_fetch(user_agent, url)
+            if not can_fetch:
+                print(f"robots.txt disallows fetching {url}")
+            return can_fetch
+        
+        return True
+    
+    def _discover_sitemap_urls(self, base_url: str) -> List[str]:
+        """Discover URLs from sitemap.xml if available."""
+        if base_url in self.sitemap_cache:
+            return self.sitemap_cache[base_url]
+        
+        sitemap_urls = []
+        sitemap_locations = [
+            urljoin(base_url, '/sitemap.xml'),
+            urljoin(base_url, '/sitemap_index.xml'),
+            urljoin(base_url, '/sitemaps/sitemap.xml')
+        ]
+        
+        # Also check robots.txt for sitemap declarations
+        robots_parser = self.robots_cache.get(base_url)
+        if robots_parser:
+            for sitemap in robots_parser.site_maps():
+                sitemap_locations.append(sitemap)
+        
+        for sitemap_url in sitemap_locations:
+            try:
+                print(f"Checking sitemap: {sitemap_url}")
+                response = self._fetch_with_retries(sitemap_url)
+                if response:
+                    sitemap_urls.extend(self._parse_sitemap(response.text))
+                    break
+            except Exception as e:
+                print(f"Could not process sitemap {sitemap_url}: {e}")
+        
+        self.sitemap_cache[base_url] = sitemap_urls
+        return sitemap_urls
+    
+    def _parse_sitemap(self, sitemap_content: str) -> List[str]:
+        """Parse sitemap XML and extract URLs."""
+        urls = []
+        try:
+            root = ET.fromstring(sitemap_content)
+            
+            # Handle sitemap index files
+            for sitemap in root.findall('.//{http://www.sitemaps.org/schemas/sitemap/0.9}sitemap'):
+                loc = sitemap.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+                if loc is not None:
+                    # Recursively parse sub-sitemaps
+                    try:
+                        response = self._fetch_with_retries(loc.text)
+                        if response:
+                            urls.extend(self._parse_sitemap(response.text))
+                    except Exception as e:
+                        print(f"Error parsing sub-sitemap {loc.text}: {e}")
+            
+            # Handle regular sitemap files
+            for url_elem in root.findall('.//{http://www.sitemaps.org/schemas/sitemap/0.9}url'):
+                loc = url_elem.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+                if loc is not None:
+                    urls.append(loc.text)
+            
+        except ET.ParseError as e:
+            print(f"Could not parse sitemap XML: {e}")
+        
+        return urls
+    
+    def _fetch_with_retries(self, url: str) -> Optional[requests.Response]:
+        """Fetch URL with retry logic and proper error handling."""
+        for attempt in range(self.max_retries):
+            try:
+                self._respect_rate_limit()
+                print(f"Fetching {url} (attempt {attempt + 1}/{self.max_retries})")
+                
+                response = self.session.get(url, timeout=30)
+                response.raise_for_status()
+                return response
+                
+            except requests.exceptions.RequestException as e:
+                print(f"Attempt {attempt + 1} failed for {url}: {e}")
+                if attempt < self.max_retries - 1:
+                    backoff_time = (2 ** attempt) * self.rate_limit_delay
+                    print(f"Backing off for {backoff_time:.1f}s before retry")
+                    time.sleep(backoff_time)
+                else:
+                    print(f"All {self.max_retries} attempts failed for {url}")
+        
+        return None
+    
+    def extract_page(self, url: str) -> List[KnowledgeEntry]:
+        """Extract content from a single ATO page and return chunked entries."""
+        try:
+            # Check robots.txt compliance
+            if not self._check_robots_txt(url):
+                print(f"Skipping {url} due to robots.txt restrictions")
+                return []
+            
+            # Fetch with retries
+            response = self._fetch_with_retries(url)
+            if not response:
+                return []
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Extract metadata
+            metadata = self._extract_metadata(soup, response, url)
+            
+            # Remove boilerplate
+            cleaned_soup = self._remove_boilerplate(soup)
+            
+            # Extract structured content chunks
+            chunks = self._extract_chunks(cleaned_soup, metadata)
+            
+            return chunks
+            
+        except Exception as e:
+            print(f"Error extracting {url}: {e}")
+            return []
+    
+    def _extract_metadata(self, soup: BeautifulSoup, response: requests.Response, url: str) -> Dict[str, Any]:
+        """Extract page metadata including last updated dates."""
+        metadata = {
+            'url': url,
+            'domain': urlparse(url).netloc,
+            'jurisdiction': 'AU',
+            'source_type': 'web',
+            'retrieved_at': datetime.now().strftime('%Y-%m-%d'),
+            'last_modified_header': None,
+            'last_updated_claimed': None
+        }
+        
+        # Extract HTTP Last-Modified header
+        if 'Last-Modified' in response.headers:
+            try:
+                last_modified = datetime.strptime(
+                    response.headers['Last-Modified'], 
+                    '%a, %d %b %Y %H:%M:%S %Z'
+                )
+                metadata['last_modified_header'] = last_modified.isoformat() + 'Z'
+            except ValueError:
+                pass
+        
+        # Extract claimed last updated date from page content
+        last_updated_text = soup.find(string=re.compile(r'Last updated:?\s*', re.IGNORECASE))
+        if last_updated_text:
+            # Extract date from text like "Last updated: 18 June 2025"
+            date_match = re.search(r'(\d{1,2})\s+(\w+)\s+(\d{4})', last_updated_text)
+            if date_match:
+                day, month_name, year = date_match.groups()
+                month_map = {
+                    'january': '01', 'february': '02', 'march': '03', 'april': '04',
+                    'may': '05', 'june': '06', 'july': '07', 'august': '08',
+                    'september': '09', 'october': '10', 'november': '11', 'december': '12'
+                }
+                month = month_map.get(month_name.lower(), '01')
+                metadata['last_updated_claimed'] = f"{year}-{month}-{day.zfill(2)}"
+        
+        return metadata
+    
+    def _remove_boilerplate(self, soup: BeautifulSoup) -> BeautifulSoup:
+        """Remove navigation, footers, sidebars, and other boilerplate content."""
+        # Remove common boilerplate selectors
+        selectors_to_remove = [
+            'nav', 'header', 'footer', '.sidebar', '.navigation',
+            '.breadcrumb', '.print-block', '.share-widget',
+            '.back-to-top', '.page-tools', '.feedback',
+            '[class*="print"]', '[class*="download"]', '[class*="share"]',
+            '.skip-link', '.screen-reader-text'
+        ]
+        
+        for selector in selectors_to_remove:
+            for element in soup.select(selector):
+                element.decompose()
+        
+        # Remove script and style tags
+        for tag in soup(['script', 'style', 'noscript']):
+            tag.decompose()
+        
+        return soup
+    
+    def _extract_chunks(self, soup: BeautifulSoup, metadata: Dict[str, Any]) -> List[KnowledgeEntry]:
+        """Extract content chunks based on heading structure with overlap."""
+        chunks = []
+        
+        # Find main content area
+        main_content = soup.find('main') or soup.find(class_=re.compile(r'content|main')) or soup
+        
+        # Extract page title
+        page_title = soup.find('h1')
+        title_text = page_title.get_text(strip=True) if page_title else "Untitled"
+        
+        # Find all headings that structure the content
+        headings = main_content.find_all(['h2', 'h3'], string=True)
+        
+        # Extract section chunks with overlap
+        for i, heading in enumerate(headings):
+            section_chunks = self._extract_section_chunks_with_overlap(heading, headings, i, metadata, title_text)
+            chunks.extend(section_chunks)
+        
+        # Handle tables as separate chunks
+        tables = main_content.find_all('table')
+        for table in tables:
+            table_chunks = self._extract_table_chunks_with_overlap(table, metadata, title_text, main_content)
+            chunks.extend(table_chunks)
+        
+        return chunks
+    
+    def _extract_section_chunks_with_overlap(self, heading: Tag, all_headings: List[Tag], 
+                                           index: int, metadata: Dict[str, Any], page_title: str) -> List[KnowledgeEntry]:
+        """Extract content chunks for a section - keep natural section boundaries."""
+        chunks = []
+        section_title = heading.get_text(strip=True)
+        
+        # Collect all content for this section
+        content_parts = []
+        current = heading.next_sibling
+        
+        while current:
+            if isinstance(current, Tag):
+                if current.name in ['h2', 'h3'] and current in all_headings[index + 1:]:
+                    break
+                if current.name not in ['table']:  # Tables handled separately
+                    text = current.get_text(strip=True)
+                    if text:
+                        content_parts.append(text)
+            elif isinstance(current, str):
+                text = current.strip()
+                if text:
+                    content_parts.append(text)
+            current = current.next_sibling
+        
+        if not content_parts:
+            return chunks
+        
+        # Join all content
+        full_content = ' '.join(content_parts)
+        
+        # Extract structured information
+        structured_info = self._extract_structured_info(full_content, section_title)
+        if structured_info:
+            full_content = f"{full_content}\n\nKey Information: {structured_info}"
+        
+        # Clean the content
+        full_content = self._clean_content(full_content)
+        
+        # Split into chunks with 300-800 token range and 10-15% overlap
+        target_size = 2400  # ~600 tokens (middle of 300-800 range)
+        min_size = 1200     # ~300 tokens
+        max_size = 3200     # ~800 tokens
+        overlap_size = int(target_size * 0.125)  # 12.5% overlap
+        
+        if len(full_content) <= max_size:
+            # Content fits in one chunk within token range
+            if len(full_content) >= min_size:
+                chunks.append(self._create_knowledge_entry(
+                    full_content, section_title, heading, metadata, page_title, 0
+                ))
+            elif len(full_content) >= 50:
+                # Small chunk but still useful - keep it
+                chunks.append(self._create_knowledge_entry(
+                    full_content, section_title, heading, metadata, page_title, 0
+                ))
+        else:
+            # Split large content into overlapping chunks
+            chunk_num = 0
+            start = 0
+            
+            while start < len(full_content):
+                end = min(start + target_size, len(full_content))
+                
+                # Find a good break point (sentence or paragraph boundary)
+                if end < len(full_content):
+                    # Look for sentence ending within last 200 chars
+                    search_start = max(end - 200, start)
+                    sentence_ends = [m.end() for m in re.finditer(r'[.!?]\s+', full_content[search_start:end])]
+                    if sentence_ends:
+                        end = search_start + sentence_ends[-1]
+                
+                chunk_content = full_content[start:end].strip()
+                
+                if len(chunk_content) >= 50:  # Minimum viable content
+                    chunks.append(self._create_knowledge_entry(
+                        chunk_content, section_title, heading, metadata, page_title, chunk_num
+                    ))
+                    chunk_num += 1
+                
+                # Move start position with overlap
+                if end >= len(full_content):
+                    break
+                start = end - overlap_size
+        
+        return chunks
+    
+    def _create_knowledge_entry(self, content: str, section_title: str, heading: Tag, 
+                              metadata: Dict[str, Any], page_title: str, chunk_num: int) -> KnowledgeEntry:
+        """Create a KnowledgeEntry from processed content."""
+        # Extract actual anchor from heading element, fallback to generated
+        anchor = self._extract_anchor_from_element(heading) or self._generate_anchor(section_title)
+        if chunk_num > 0:
+            anchor = f"{anchor}-part-{chunk_num + 1}"
+        
+        # Determine effective years and tags
+        effective_years = self._extract_years_from_content(content, section_title)
+        tags = self._generate_tags(content, section_title, page_title)
+        
+        chunk_id = f"{metadata['domain'].replace('.', '_')}_{anchor}_{metadata['retrieved_at'].replace('-', '')}"
+        
+        title = f"{page_title} - {section_title}"
+        if chunk_num > 0:
+            title = f"{title} (Part {chunk_num + 1})"
+        
+        return KnowledgeEntry(
+            id=chunk_id,
+            url=metadata['url'],
+            title=title,
+            section=section_title,
+            anchor=anchor,
+            content=content,
+            jurisdiction=metadata['jurisdiction'],
+            domain=metadata['domain'],
+            source_type=metadata['source_type'],
+            last_updated_claimed=metadata['last_updated_claimed'],
+            last_modified_header=metadata['last_modified_header'],
+            retrieved_at=metadata['retrieved_at'],
+            effective_years=effective_years,
+            tags=tags
+        )
+    
+    def _extract_section_chunk(self, heading: Tag, all_headings: List[Tag], 
+                             index: int, metadata: Dict[str, Any], page_title: str) -> Optional[KnowledgeEntry]:
+        """Extract a content chunk for a specific section."""
+        section_title = heading.get_text(strip=True)
+        
+        # Generate anchor from heading
+        anchor = self._generate_anchor(section_title)
+        
+        # Collect content until next heading of same or higher level
+        content_parts = []
+        current = heading.next_sibling
+        
+        while current:
+            if isinstance(current, Tag):
+                if current.name in ['h2', 'h3'] and current in all_headings[index + 1:]:
+                    break
+                if current.name not in ['table']:  # Tables handled separately
+                    text = current.get_text(strip=True)
+                    if text:
+                        content_parts.append(text)
+            elif isinstance(current, str):
+                text = current.strip()
+                if text:
+                    content_parts.append(text)
+            current = current.next_sibling
+        
+        if not content_parts:
+            return None
+        
+        content = ' '.join(content_parts)
+        content = self._clean_content(content)
+        
+        # Skip if content too short
+        if len(content) < 50:
+            return None
+        
+        # Extract structured information and enhance content
+        structured_info = self._extract_structured_info(content, section_title)
+        if structured_info:
+            content = f"{content}\n\nKey Information: {structured_info}"
+        
+        # Clean the enhanced content
+        content = self._clean_content(content)
+        
+        # Determine effective years and tags
+        effective_years = self._extract_years_from_content(content, section_title)
+        tags = self._generate_tags(content, section_title, page_title)
+        
+        chunk_id = f"{metadata['domain'].replace('.', '_')}_{anchor}_{metadata['retrieved_at'].replace('-', '')}"
+        
+        return KnowledgeEntry(
+            id=chunk_id,
+            url=metadata['url'],
+            title=f"{page_title} - {section_title}",
+            section=section_title,
+            anchor=anchor,
+            content=content,
+            jurisdiction=metadata['jurisdiction'],
+            domain=metadata['domain'],
+            source_type=metadata['source_type'],
+            last_updated_claimed=metadata['last_updated_claimed'],
+            last_modified_header=metadata['last_modified_header'],
+            retrieved_at=metadata['retrieved_at'],
+            effective_years=effective_years,
+            tags=tags
+        )
+    
+    def _extract_table_chunks_with_overlap(self, table: Tag, metadata: Dict[str, Any], page_title: str, soup_context: BeautifulSoup = None) -> List[KnowledgeEntry]:
+        """Extract table content with chunking and overlap if needed."""
+        chunks = []
+        
+        # Get table caption first (preferred)
+        caption = table.find('caption')
+        if caption:
+            table_title = caption.get_text(strip=True)
+        else:
+            # Look for preceding heading in DOM tree
+            prev_heading = table.find_previous(['h2', 'h3', 'h4'])
+            if prev_heading:
+                table_title = prev_heading.get_text(strip=True)
+            else:
+                table_title = "Tax Table"
+        
+        # Extract table content
+        content_parts = []
+        
+        # Add table header
+        thead = table.find('thead')
+        if thead:
+            headers = [th.get_text(strip=True) for th in thead.find_all(['th', 'td'])]
+            content_parts.append(" | ".join(headers))
+        
+        # Add table rows
+        tbody = table.find('tbody') or table
+        for row in tbody.find_all('tr'):
+            cells = [td.get_text(strip=True) for td in row.find_all(['td', 'th'])]
+            if cells:
+                content_parts.append(" | ".join(cells))
+        
+        if not content_parts:
+            return chunks
+        
+        # Join all table content
+        full_content = "\n".join(content_parts)
+        
+        # Extract structured information and enhance content
+        structured_info = self._extract_structured_info(full_content, table_title)
+        if structured_info:
+            full_content = f"{full_content}\n\nKey Information: {structured_info}"
+        
+        # Clean the enhanced content
+        full_content = self._clean_content(full_content)
+        
+        # Split table into chunks with 300-800 token range and 10-15% overlap if needed
+        target_size = 2400  # ~600 tokens
+        min_size = 1200     # ~300 tokens
+        max_size = 3200     # ~800 tokens
+        overlap_size = int(target_size * 0.125)  # 12.5% overlap
+        
+        if len(full_content) <= max_size:
+            # Table fits in one chunk within token range
+            if len(full_content) >= min_size:
+                chunks.append(self._create_table_knowledge_entry(
+                    full_content, table_title, table, metadata, page_title, 0
+                ))
+            elif len(full_content) >= 50:
+                # Small table but still useful - keep it
+                chunks.append(self._create_table_knowledge_entry(
+                    full_content, table_title, table, metadata, page_title, 0
+                ))
+        else:
+            # Split large table into chunks with overlap
+            chunk_num = 0
+            start = 0
+            
+            while start < len(full_content):
+                end = min(start + target_size, len(full_content))
+                
+                # For tables, try to break at row boundaries
+                if end < len(full_content):
+                    # Look for newline (row boundary) within last 300 chars
+                    search_start = max(end - 300, start)
+                    newlines = [i for i, char in enumerate(full_content[search_start:end]) if char == '\n']
+                    if newlines:
+                        end = search_start + newlines[-1] + 1
+                
+                chunk_content = full_content[start:end].strip()
+                
+                # Ensure each chunk has table headers if this is not the first chunk
+                if chunk_num > 0 and content_parts:
+                    header_row = content_parts[0]  # First row is usually headers
+                    if header_row not in chunk_content:
+                        chunk_content = f"{header_row}\n{chunk_content}"
+                
+                if len(chunk_content) >= 50:  # Minimum viable content
+                    chunks.append(self._create_table_knowledge_entry(
+                        chunk_content, table_title, table, metadata, page_title, chunk_num
+                    ))
+                    chunk_num += 1
+                
+                # Move start position with overlap
+                if end >= len(full_content):
+                    break
+                start = end - overlap_size
+        
+        return chunks
+    
+    def _create_table_knowledge_entry(self, content: str, table_title: str, table: Tag,
+                                    metadata: Dict[str, Any], page_title: str, chunk_num: int) -> KnowledgeEntry:
+        """Create a KnowledgeEntry for table content."""
+        # For tables, find the associated heading's anchor
+        table_heading = table.find_previous(['h2', 'h3', 'h4'])
+        
+        anchor = self._extract_anchor_from_element(table_heading) or self._generate_anchor(table_title)
+        if chunk_num > 0:
+            anchor = f"{anchor}-part-{chunk_num + 1}"
+        
+        effective_years = self._extract_years_from_content(content, table_title)
+        tags = self._generate_tags(content, table_title, page_title)
+        tags.append("table")
+        
+        chunk_id = f"{metadata['domain'].replace('.', '_')}_table_{anchor}_{metadata['retrieved_at'].replace('-', '')}"
+        
+        title = f"{page_title} - {table_title}"
+        if chunk_num > 0:
+            title = f"{title} (Part {chunk_num + 1})"
+        
+        return KnowledgeEntry(
+            id=chunk_id,
+            url=metadata['url'],
+            title=title,
+            section=table_title,
+            anchor=anchor,
+            content=content,
+            jurisdiction=metadata['jurisdiction'],
+            domain=metadata['domain'],
+            source_type=metadata['source_type'],
+            last_updated_claimed=metadata['last_updated_claimed'],
+            last_modified_header=metadata['last_modified_header'],
+            retrieved_at=metadata['retrieved_at'],
+            effective_years=effective_years,
+            tags=tags
+        )
+    
+    def _extract_table_chunk(self, table: Tag, metadata: Dict[str, Any], page_title: str) -> Optional[KnowledgeEntry]:
+        """Extract a table as a separate chunk."""
+        # Get table caption first (preferred)
+        caption = table.find('caption')
+        if caption:
+            table_title = caption.get_text(strip=True)
+        else:
+            # Look for preceding heading in DOM tree
+            prev_heading = table.find_previous(['h2', 'h3', 'h4'])
+            if prev_heading:
+                table_title = prev_heading.get_text(strip=True)
+            else:
+                table_title = "Tax Table"
+        
+        # Extract table content
+        content_parts = []
+        
+        # Add table header
+        thead = table.find('thead')
+        if thead:
+            headers = [th.get_text(strip=True) for th in thead.find_all(['th', 'td'])]
+            content_parts.append(" | ".join(headers))
+        
+        # Add table rows
+        tbody = table.find('tbody') or table
+        for row in tbody.find_all('tr'):
+            cells = [td.get_text(strip=True) for td in row.find_all(['td', 'th'])]
+            if cells:
+                content_parts.append(" | ".join(cells))
+        
+        if not content_parts:
+            return None
+        
+        content = "\n".join(content_parts)
+        # Extract structured information and enhance content
+        structured_info = self._extract_structured_info(content, table_title)
+        if structured_info:
+            content = f"{content}\n\nKey Information: {structured_info}"
+        
+        # Clean the enhanced content
+        content = self._clean_content(content)
+        
+        # Generate metadata
+        table_heading = table.find_previous(['h2', 'h3', 'h4']) if hasattr(table, 'find_previous') else None
+        anchor = self._extract_anchor_from_element(table_heading) or self._generate_anchor(table_title)
+        effective_years = self._extract_years_from_content(content, table_title)
+        tags = self._generate_tags(content, table_title, page_title)
+        tags.append("table")
+        
+        chunk_id = f"{metadata['domain'].replace('.', '_')}_table_{anchor}_{metadata['retrieved_at'].replace('-', '')}"
+        
+        return KnowledgeEntry(
+            id=chunk_id,
+            url=metadata['url'],
+            title=f"{page_title} - {table_title}",
+            section=table_title,
+            anchor=anchor,
+            content=content,
+            jurisdiction=metadata['jurisdiction'],
+            domain=metadata['domain'],
+            source_type=metadata['source_type'],
+            last_updated_claimed=metadata['last_updated_claimed'],
+            last_modified_header=metadata['last_modified_header'],
+            retrieved_at=metadata['retrieved_at'],
+            effective_years=effective_years,
+            tags=tags
+        )
+    
+    def _clean_content(self, content: str) -> str:
+        """Clean and normalize content text with comprehensive cleanup."""
+        # Fix unicode issues first
+        content = content.encode('utf-8', errors='ignore').decode('utf-8')
+        
+        # Normalize unicode characters
+        content = content.replace('\u2013', '-')  # en dash to hyphen
+        content = content.replace('\u2014', '-')  # em dash to hyphen
+        content = content.replace('\u2019', "'")  # right single quote
+        content = content.replace('\u201c', '"')  # left double quote
+        content = content.replace('\u201d', '"')  # right double quote
+        content = content.replace('\u00a0', ' ')  # non-breaking space
+        content = content.replace('\u00b7', '·')  # middle dot
+        
+        # Collapse whitespace (including tabs, newlines, multiple spaces)
+        content = re.sub(r'\s+', ' ', content)
+        
+        # Canonicalize number formats
+        content = re.sub(r'\$(\d+),(\d{3})', r'$\1,\2', content)  # Ensure proper comma placement
+        content = re.sub(r'(\d+)\s*%', r'\1%', content)  # Remove spaces before %
+        content = re.sub(r'(\d+)\s*c\b', r'\1c', content)  # Remove spaces before 'c' (cents)
+        content = re.sub(r'(\d+)\s*cents?\b', r'\1 cents', content)  # Normalize cents
+        
+        # Normalize currency expressions
+        content = re.sub(r'\$(\d+)\s+(\d+)', r'$\1\2', content)  # Fix separated numbers
+        content = re.sub(r'(\d+)\.00\b', r'\1', content)  # Remove .00 from whole numbers
+        
+        # Clean up common formatting issues
+        content = re.sub(r'\s*\|\s*', ' | ', content)  # Normalize table separators
+        content = re.sub(r'\s*-\s*', ' - ', content)  # Normalize dashes
+        content = re.sub(r'\s*:\s*', ': ', content)  # Normalize colons
+        
+        # Remove duplicate consecutive words (common OCR/parsing error)
+        words = content.split()
+        deduplicated = []
+        prev_word = None
+        for word in words:
+            if word != prev_word or len(word) <= 3:  # Keep short words even if repeated
+                deduplicated.append(word)
+            prev_word = word
+        content = ' '.join(deduplicated)
+        
+        # Final cleanup
+        content = re.sub(r'\s+', ' ', content)  # Final whitespace collapse
+        content = content.strip()
+        
+        return content
+    
+    def _extract_anchor_from_element(self, element: Tag) -> Optional[str]:
+        """Extract the actual anchor ID from an HTML element."""
+        if element and element.get('id'):
+            return element.get('id')
+        return None
+    
+    def _generate_anchor(self, text: str) -> str:
+        """Generate kebab-case anchor from text as fallback."""
+        # Convert to lowercase and replace spaces/special chars with hyphens
+        anchor = re.sub(r'[^\w\s-]', '', text.lower())
+        anchor = re.sub(r'[-\s]+', '-', anchor)
+        return anchor.strip('-')
+    
+    def _extract_structured_info(self, content: str, section: str) -> str:
+        """Extract structured information and format as readable text."""
+        structured_items = []
+        
+        # Extract tax rates (percentages and cents)
+        rate_matches = re.finditer(r'(\d+(?:\.\d+)?)\s*(?:cents?|c)\s*(?:per|for every)\s*\$?1', content, re.IGNORECASE)
+        for match in rate_matches:
+            structured_items.append(f"Tax rate: {match.group(1)} cents per dollar")
+        
+        # Extract income thresholds
+        threshold_matches = re.finditer(r'\$(\d+(?:,\d+)*)', content)
+        seen_thresholds = set()
+        for match in threshold_matches:
+            amount = match.group(0)  # Keep original format with commas
+            if amount not in seen_thresholds:
+                structured_items.append(f"Income threshold: {amount}")
+                seen_thresholds.add(amount)
+        
+        # Extract percentages
+        percent_matches = re.finditer(r'(\d+(?:\.\d+)?)\s*%', content)
+        seen_percentages = set()
+        for match in percent_matches:
+            rate = f"{match.group(1)}%"
+            if rate not in seen_percentages:
+                structured_items.append(f"Rate: {rate}")
+                seen_percentages.add(rate)
+        
+        # Extract year ranges
+        year_matches = re.finditer(r'20\d{2}[-–]?\d{2}', content)
+        seen_years = set()
+        for match in year_matches:
+            year = match.group(0).replace('–', '-')
+            if year not in seen_years:
+                structured_items.append(f"Tax year: {year}")
+                seen_years.add(year)
+        
+        # Extract Medicare levy specific info
+        if 'medicare' in section.lower():
+            if '2%' in content:
+                structured_items.append("Medicare levy: 2% of taxable income")
+            if 'surcharge' in content.lower():
+                structured_items.append("Medicare levy surcharge applies to high earners without private health insurance")
+        
+        # Remove duplicates while preserving order
+        unique_items = []
+        for item in structured_items:
+            if item not in unique_items:
+                unique_items.append(item)
+        
+        return '; '.join(unique_items) if unique_items else ""
+    
+    def _extract_years_from_content(self, content: str, title: str) -> List[str]:
+        """Extract effective years from content and title."""
+        years = []
+        
+        # Look for year patterns like "2025-26", "2024-25"
+        year_matches = re.findall(r'20\d{2}[-–]?\d{2}', content + " " + title)
+        for match in year_matches:
+            normalized = match.replace('–', '-')  # Normalize dash
+            if normalized not in years:
+                years.append(normalized)
+        
+        return years
+    
+    def _generate_tags(self, content: str, section: str, page_title: str) -> List[str]:
+        """Generate relevant tags based on content analysis."""
+        tags = []
+        
+        # Domain-specific tags
+        if 'ato.gov.au' in content.lower():
+            tags.append('ato')
+        
+        # Tax type tags
+        if any(word in content.lower() for word in ['individual', 'resident', 'personal']):
+            tags.append('individual-tax')
+        
+        if any(word in content.lower() for word in ['rate', 'bracket', 'threshold']):
+            tags.append('tax-rates')
+        
+        if 'medicare' in content.lower():
+            tags.append('medicare-levy')
+        
+        if 'surcharge' in content.lower():
+            tags.append('medicare-levy-surcharge')
+        
+        if any(word in content.lower() for word in ['deduction', 'claim', 'expense']):
+            tags.append('deductions')
+        
+        # Content type tags
+        if any(word in section.lower() for word in ['example', 'calculation']):
+            tags.append('examples')
+        
+        if any(word in section.lower() for word in ['warning', 'note', 'important']):
+            tags.append('warnings')
+        
+        return list(set(tags))  # Remove duplicates
+
+
+def extract_ato_knowledge(use_sitemap: bool = True) -> List[KnowledgeEntry]:
+    """Extract knowledge from specified ATO URLs and optionally from sitemap discovery."""
+    extractor = ATOContentExtractor(rate_limit_delay=3.0, max_retries=3)
+    
+    target_urls = [
+        "https://www.ato.gov.au/tax-rates-and-codes/tax-rates-australian-residents",
+        "https://www.ato.gov.au/individuals-and-families/medicare-and-private-health-insurance/medicare-levy-surcharge/medicare-levy-surcharge-income-thresholds-and-rates"
+    ]
+    
+    all_urls = target_urls.copy()
+    
+    # Discover additional URLs from sitemap if requested
+    if use_sitemap:
+        print("Discovering URLs from ATO sitemap...")
+        try:
+            sitemap_urls = extractor._discover_sitemap_urls("https://www.ato.gov.au")
+            
+            # Only allow the two specific URLs we want - filter sitemap for exact matches
+            allowed_urls = set(target_urls)
+            
+            for url in sitemap_urls:
+                if url in allowed_urls and url not in all_urls:
+                    all_urls.append(url)
+                    print(f"Found target URL in sitemap: {url}")
+            
+            print(f"Total URLs to process: {len(all_urls)} (restricted to specified URLs only)")
+            
+        except Exception as e:
+            print(f"Sitemap discovery failed, proceeding with target URLs only: {e}")
+    
+    all_entries = []
+    successful_extractions = 0
+    
+    for i, url in enumerate(all_urls):
+        print(f"\n[{i+1}/{len(all_urls)}] Extracting content from {url}...")
+        entries = extractor.extract_page(url)
+        if entries:
+            all_entries.extend(entries)
+            successful_extractions += 1
+            print(f"✅ Extracted {len(entries)} chunks from {url}")
+        else:
+            print(f"❌ No content extracted from {url}")
+    
+    print(f"\n🎯 Extraction Summary:")
+    print(f"   URLs processed: {len(all_urls)}")
+    print(f"   Successful extractions: {successful_extractions}")
+    print(f"   Total knowledge chunks: {len(all_entries)}")
+    
+    return all_entries
+
+
+if __name__ == "__main__":
+    entries = extract_ato_knowledge()
+    print(f"Total extracted entries: {len(entries)}")
+    
+    # Show sample entry
+    if entries:
+        print("\nSample entry:")
+        print(f"ID: {entries[0].id}")
+        print(f"Title: {entries[0].title}")
+        print(f"Content: {entries[0].content[:200]}...")
+        print(f"Tags: {entries[0].tags}")
+        print(f"Facts: {len(entries[0].facts)}")
