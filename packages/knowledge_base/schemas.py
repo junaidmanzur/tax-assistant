@@ -72,4 +72,4 @@ class KnowledgeSearchRequest(BaseModel):
     query: str
     category: Optional[str] = None   # Filter by category
     limit: int = 3                   # Number of results to return
-    min_score: float = 0.7          # Minimum similarity threshold
+    min_score: float = 0.5          # Minimum similarity threshold

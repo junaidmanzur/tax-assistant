@@ -63,14 +63,14 @@ def search_tax_knowledge(
         best_result = results[0]
         response_parts.append(f"**{best_result.entry.title}**")
         response_parts.append(f"{best_result.entry.content}")
-        response_parts.append(f"📋 **Source:** {best_result.entry.ato_url}")
+        response_parts.append(f"📋 **Source:** {best_result.entry.url}")
         
         # Add additional relevant information if multiple good matches
         if len(results) > 1 and results[1].score > 0.8:
             response_parts.append(f"\n**Related Information:**")
             for result in results[1:]:
                 response_parts.append(f"• **{result.entry.title}**: {result.entry.content[:150]}...")
-                response_parts.append(f"  📋 Source: {result.entry.ato_url}")
+                response_parts.append(f"  📋 Source: {result.entry.url}")
         
         # Add confidence indicator
         confidence = "High" if best_result.score > 0.9 else "Medium" if best_result.score > 0.8 else "Moderate"
@@ -118,14 +118,14 @@ def get_tax_concept_explanation(concept: str) -> str:
         best_result = results[0]
         response_parts.append(f"**{best_result.entry.title}**")
         response_parts.append(f"{best_result.entry.content}")
-        response_parts.append(f"📋 **Official ATO Reference:** {best_result.entry.ato_url}")
+        response_parts.append(f"📋 **Official ATO Reference:** {best_result.entry.url}")
         
         # Add related concept if available
         if len(results) > 1:
             related = results[1]
             response_parts.append(f"\n**Related Concept: {related.entry.title}**")
             response_parts.append(f"{related.entry.content}")
-            response_parts.append(f"📋 Source: {related.entry.ato_url}")
+            response_parts.append(f"📋 Source: {related.entry.url}")
         
         return "\n".join(response_parts)
         
@@ -178,7 +178,7 @@ def find_deduction_information(deduction_type: str, tax_year: str = "2024-25") -
         best_match = year_filtered[0]
         response_parts.append(f"**{best_match.entry.title}**")
         response_parts.append(f"{best_match.entry.content}")
-        response_parts.append(f"📋 **Official ATO Guide:** {best_match.entry.ato_url}")
+        response_parts.append(f"📋 **Official ATO Guide:** {best_match.entry.url}")
         
         # Add year context
         response_parts.append(f"💡 **Tax Year:** {best_match.entry.tax_year}")
@@ -240,7 +240,7 @@ def get_calculation_help(calculation_topic: str, tax_year: str = "2024-25") -> s
         primary = year_results[0]
         response_parts.append(f"**{primary.entry.title}**")
         response_parts.append(f"{primary.entry.content}")
-        response_parts.append(f"📋 **ATO Reference:** {primary.entry.ato_url}")
+        response_parts.append(f"📋 **ATO Reference:** {primary.entry.url}")
         
         # Add calculation context
         response_parts.append(f"💡 **Tax Year:** {primary.entry.tax_year}")

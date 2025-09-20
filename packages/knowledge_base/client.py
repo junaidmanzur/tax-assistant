@@ -162,24 +162,33 @@ class KnowledgeBaseClient:
         # Convert to KnowledgeSearchResult objects
         results = []
         for hit in search_results.points:
-            entry = KnowledgeEntry(
-                id=hit.payload["id"],
-                url=hit.payload["url"],
-                title=hit.payload["title"],
-                section=hit.payload.get("section"),
-                anchor=hit.payload.get("anchor"),
-                content=hit.payload["content"],
-                jurisdiction=hit.payload.get("jurisdiction", "AU"),
-                domain=hit.payload["domain"],
-                source_type=hit.payload.get("source_type", "web"),
-                last_updated_claimed=hit.payload.get("last_updated_claimed"),
-                last_modified_header=hit.payload.get("last_modified_header"),
-                retrieved_at=hit.payload["retrieved_at"],
-                effective_years=hit.payload.get("effective_years", []),
-                tags=hit.payload.get("tags", []),
-                hash=hit.payload.get("hash")
-            )
-            results.append(KnowledgeSearchResult(entry=entry, score=hit.score))
+            # Skip points with incomplete payload data
+            required_fields = ["id", "url", "title", "content", "domain", "retrieved_at"]
+            if not all(field in hit.payload for field in required_fields):
+                continue
+
+            try:
+                entry = KnowledgeEntry(
+                    id=hit.payload["id"],
+                    url=hit.payload["url"],
+                    title=hit.payload["title"],
+                    section=hit.payload.get("section"),
+                    anchor=hit.payload.get("anchor"),
+                    content=hit.payload["content"],
+                    jurisdiction=hit.payload.get("jurisdiction", "AU"),
+                    domain=hit.payload["domain"],
+                    source_type=hit.payload.get("source_type", "web"),
+                    last_updated_claimed=hit.payload.get("last_updated_claimed"),
+                    last_modified_header=hit.payload.get("last_modified_header"),
+                    retrieved_at=hit.payload["retrieved_at"],
+                    effective_years=hit.payload.get("effective_years", []),
+                    tags=hit.payload.get("tags", []),
+                    hash=hit.payload.get("hash")
+                )
+                results.append(KnowledgeSearchResult(entry=entry, score=hit.score))
+            except Exception as e:
+                # Skip entries that fail to parse
+                continue
         
         return results
     
