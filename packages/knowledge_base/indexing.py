@@ -124,31 +124,27 @@ class KnowledgeIndexer:
             "by_domain": {},
             "by_effective_years": {},
             "avg_content_length": 0,
-            "total_tags": 0,
-            "total_facts": 0
+            "total_tags": 0
         }
-        
+
         total_content_length = 0
         all_tags = set()
-        total_facts = 0
-        
+
         for entry in entries:
             # Domain stats
             stats["by_domain"][entry.domain] = stats["by_domain"].get(entry.domain, 0) + 1
-            
+
             # Effective years stats
             for year in entry.effective_years:
                 stats["by_effective_years"][year] = stats["by_effective_years"].get(year, 0) + 1
-            
+
             # Content stats
             total_content_length += len(entry.content)
             all_tags.update(entry.tags)
-            total_facts += len(entry.facts)
-        
+
         if entries:
             stats["avg_content_length"] = total_content_length // len(entries)
         stats["total_tags"] = len(all_tags)
-        stats["total_facts"] = total_facts
         
         return stats
 
@@ -166,7 +162,7 @@ def main():
     print(f"   Domains: {dict(stats['by_domain'])}")
     print(f"   Effective years: {dict(stats['by_effective_years'])}")
     print(f"   Avg content length: {stats['avg_content_length']} chars")
-    print(f"   Total facts: {stats['total_facts']}")
+    print(f"   Total tags: {stats['total_tags']}")
     
     # Validate entries
     print("\n2. Validation Results:")
@@ -183,8 +179,8 @@ def main():
     # Index entries
     print("\n3. Indexing entries...")
     try:
-        # Use web extraction by default for fresh ATO content
-        indexed_count = indexer.index_all_entries(use_web_extraction=True)
+        # Use the updated data file with fixed unique IDs
+        indexed_count = indexer.index_all_entries(use_web_extraction=False)
         print(f"   Successfully indexed {indexed_count} entries")
     except Exception as e:
         print(f"   Error during indexing: {e}")

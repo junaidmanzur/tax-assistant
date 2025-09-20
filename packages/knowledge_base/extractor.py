@@ -483,8 +483,10 @@ class ATOContentExtractor:
         
         # Determine effective years; no tags (removed as requested)
         effective_years = self._extract_years_from_content(content, section_title)
-        
-        chunk_id = f"{metadata['domain'].replace('.', '_')}_{anchor}_{metadata['retrieved_at'].replace('-', '')}"
+
+        # Include effective years in ID to ensure uniqueness
+        years_suffix = "-".join(effective_years) if effective_years else "general"
+        chunk_id = f"{metadata['domain'].replace('.', '_')}_{anchor}_{years_suffix}_{metadata['retrieved_at'].replace('-', '')}"
         
         title = f"{page_title} - {section_title}"
         if chunk_num > 0:
@@ -549,7 +551,9 @@ class ATOContentExtractor:
         # Determine effective years; no tags (removed)
         effective_years = self._extract_years_from_content(content, section_title)
         
-        chunk_id = f"{metadata['domain'].replace('.', '_')}_{anchor}_{metadata['retrieved_at'].replace('-', '')}"
+        # Include effective years in ID to ensure uniqueness
+        years_suffix = "-".join(effective_years) if effective_years else "general"
+        chunk_id = f"{metadata['domain'].replace('.', '_')}_{anchor}_{years_suffix}_{metadata['retrieved_at'].replace('-', '')}"
         
         return KnowledgeEntry(
             id=chunk_id,
@@ -740,8 +744,10 @@ class ATOContentExtractor:
             anchor = f"{anchor}-part-{chunk_num + 1}"
         
         effective_years = self._extract_years_from_content(content, table_title)
-        
-        chunk_id = f"{metadata['domain'].replace('.', '_')}_table_{anchor}_{metadata['retrieved_at'].replace('-', '')}"
+
+        # Include section text in the ID to ensure uniqueness
+        sections_text = re.sub(r'\s+', '_', table_title.lower())
+        chunk_id = f"{metadata['domain'].replace('.', '_')}_table_{anchor}_{sections_text}_{metadata['retrieved_at'].replace('-', '')}"
         
         title = f"{page_title} - {table_title}"
         if chunk_num > 0:
@@ -789,8 +795,9 @@ class ATOContentExtractor:
         anchor = self._extract_anchor_from_element(table_heading) or self._generate_anchor(table_title)
         effective_years = self._extract_years_from_content(content, table_title)
         
-        chunk_id = f"{metadata['domain'].replace('.', '_')}_table_{anchor}_{metadata['retrieved_at'].replace('-', '')}"
-        
+        # Include title text in ID to ensure uniqueness
+        title_text = re.sub(r'\s+', '_', table_title.lower())
+        chunk_id = f"{metadata['domain'].replace('.', '_')}_{anchor}_{title_text}_{metadata['retrieved_at'].replace('-', '')}"
         return KnowledgeEntry(
             id=chunk_id,
             url=metadata['url'],
@@ -949,4 +956,4 @@ if __name__ == "__main__":
         print(f"Title: {entries[0].title}")
         print(f"Content: {entries[0].content[:200]}...")
         print(f"Tags: {entries[0].tags}")
-        print(f"Facts: {len(entries[0].facts)}")
+        print(f"Effective years: {entries[0].effective_years}")
