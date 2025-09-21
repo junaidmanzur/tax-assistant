@@ -1,12 +1,27 @@
 """Knowledge base search tool for the tax assistant agent."""
+import os
 from typing import Optional, List
 from langchain_core.tools import tool
-from knowledge_base.client import KnowledgeBaseClient
-from knowledge_base.schemas import KnowledgeSearchRequest
 
+# Check if knowledge base is enabled via environment variable
+KB_AVAILABLE = os.getenv("ENABLE_KNOWLEDGE_BASE", "false").lower() == "true"
 
-# Initialize the knowledge base client
-kb_client = KnowledgeBaseClient()
+# Only import and initialize client if knowledge base is enabled
+if KB_AVAILABLE:
+    try:
+        from knowledge_base.client import KnowledgeBaseClient
+        from knowledge_base.schemas import KnowledgeSearchRequest, KnowledgeEntry
+        kb_client = KnowledgeBaseClient()
+    except ImportError as e:
+        print(f"Knowledge base dependencies not available: {e}")
+        KB_AVAILABLE = False
+        kb_client = None
+    except Exception as e:
+        print(f"Knowledge base client initialization failed: {e}")
+        KB_AVAILABLE = False
+        kb_client = None
+else:
+    kb_client = None
 
 
 @tool
@@ -35,6 +50,9 @@ def search_tax_knowledge(
         - "How does working from home deduction work?"
         - "What is the medicare levy?"
     """
+    if not KB_AVAILABLE:
+        return "Knowledge base search is currently unavailable. Please visit https://www.ato.gov.au for official tax information."
+
     try:
         # Create search request
         search_request = KnowledgeSearchRequest(
@@ -44,7 +62,7 @@ def search_tax_knowledge(
         )
         
         # Perform search
-        results = kb_client.search(search_request)
+        results: List[KnowledgeEntry] = kb_client.search(search_request)
         
         # If no results found
         if not results:
@@ -54,7 +72,7 @@ def search_tax_knowledge(
         
         # Filter by tax year if specified
         if tax_year:
-            results = [r for r in results if r.entry.tax_year == tax_year or r.entry.tax_year == "general"]
+            results = [r for r in results if tax_year in r.entry.effective_years]
         
         # Format response
         response_parts = []
@@ -97,6 +115,9 @@ def get_tax_concept_explanation(concept: str) -> str:
     Returns:
         Detailed explanation with examples and ATO sources
     """
+    if not KB_AVAILABLE:
+        return "Knowledge base search is currently unavailable. Please visit https://www.ato.gov.au for official tax information."
+
     try:
         # Search specifically in concepts category
         search_request = KnowledgeSearchRequest(
@@ -149,6 +170,9 @@ def find_deduction_information(deduction_type: str, tax_year: str = "2024-25") -
     Returns:
         Comprehensive deduction information with ATO source
     """
+    if not KB_AVAILABLE:
+        return "Knowledge base search is currently unavailable. Please visit https://www.ato.gov.au for official tax information."
+
     try:
         # Search in deductions category for specific year
         search_request = KnowledgeSearchRequest(
@@ -213,6 +237,9 @@ def get_calculation_help(calculation_topic: str, tax_year: str = "2024-25") -> s
     Returns:
         Detailed calculation explanation with examples and ATO references
     """
+    if not KB_AVAILABLE:
+        return "Knowledge base search is currently unavailable. Please visit https://www.ato.gov.au for official tax information."
+
     try:
         # Search in calculations category
         search_request = KnowledgeSearchRequest(

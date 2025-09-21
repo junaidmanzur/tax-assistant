@@ -7,12 +7,6 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 from agent.tools.tax_tool import calculate_tax_tool
 from agent.tools.deductions_tool import deductions_tool
-from agent.tools.knowledge_tool import (
-    search_tax_knowledge,
-    get_tax_concept_explanation, 
-    find_deduction_information,
-    get_calculation_help
-)
 from langfuse.langchain import CallbackHandler
 
 
@@ -29,11 +23,34 @@ if not api_key:
 
 
 ENABLE_TRACING = os.getenv("ENABLE_TRACING", "false").lower() == "true"
+ENABLE_KNOWLEDGE_BASE = os.getenv("ENABLE_KNOWLEDGE_BASE", "false").lower() == "true"
 
 def get_langfuse_handler():
     if not ENABLE_TRACING:
         return None
     return CallbackHandler()
+
+def get_knowledge_tools():
+    """Return knowledge base tools if enabled, empty list otherwise."""
+    if not ENABLE_KNOWLEDGE_BASE:
+        return []
+
+    try:
+        from agent.tools.knowledge_tool import (
+            search_tax_knowledge,
+            get_tax_concept_explanation,
+            find_deduction_information,
+            get_calculation_help
+        )
+        return [
+            search_tax_knowledge,
+            get_tax_concept_explanation,
+            find_deduction_information,
+            get_calculation_help
+        ]
+    except ImportError as e:
+        print(f"Warning: Knowledge base tools disabled due to missing dependencies: {e}")
+        return []
 
 # Create the callback handler once and reuse
 langfuse_handler = get_langfuse_handler()
@@ -51,13 +68,9 @@ system_prompt = load_system_prompt()
 memory = MemorySaver()
 model = init_chat_model("gpt-4o-mini", model_provider="openai")
 tools = [
-    calculate_tax_tool, 
+    calculate_tax_tool,
     deductions_tool,
-    search_tax_knowledge,
-    get_tax_concept_explanation,
-    find_deduction_information,
-    get_calculation_help
-]
+] + get_knowledge_tools()
 agent = create_react_agent(model, tools, checkpointer=memory, state_modifier=system_prompt)
 
 

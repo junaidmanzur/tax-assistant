@@ -12,6 +12,7 @@ This is an AI Tax Assistant MVP with a monorepo-style architecture consisting of
 - **Install dependencies**: `pip install -r requirements.txt`
 - **Run API server**: `PYTHONPATH=packages:services uvicorn services.api_gateway.main:app --reload --host 0.0.0.0 --port 8000`
 - **Environment**: Requires `OPENAI_API_KEY` in `.env` file
+- **Knowledge Base**: Set `ENABLE_KNOWLEDGE_BASE=true` in `.env` to enable ATO knowledge search tools (requires Qdrant)
 
 ### Frontend (React + Vite)
 - **Install dependencies**: `cd apps/web && pnpm install`
