@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { currency } from '@/lib/format'
 import type { TaxYear } from '@/types/tax'
 
@@ -19,6 +20,7 @@ interface TaxResultsProps {
 }
 
 export default function TaxResults({ result, year }: TaxResultsProps) {
+  const [showMonthly, setShowMonthly] = useState(false);
   const hasDeductions = result.totalDeductions && result.totalDeductions > 0;
   
   return (
@@ -48,7 +50,19 @@ export default function TaxResults({ result, year }: TaxResultsProps) {
       </div>
       <div className="kv">
         <span>Take-home pay</span>
-        <strong id="r-takehome">{currency(result.takeHome)}</strong>
+        <div className="flex items-center gap-2">
+          <strong id="r-takehome">{currency(showMonthly ? result.takeHome / 12 : result.takeHome)}</strong>
+          <button
+            onClick={() => setShowMonthly(!showMonthly)}
+            className={`transition-colors cursor-pointer px-2 py-0.5 rounded text-xs ${
+              showMonthly
+                ? 'text-accent bg-accent/10 hover:bg-accent/15'
+                : 'text-accent bg-accent/10 hover:bg-accent/15'
+            }`}
+          >
+            {showMonthly ? 'monthly' : 'annually'}
+          </button>
+        </div>
       </div>
       <div className="kv">
         <span>Base tax</span>

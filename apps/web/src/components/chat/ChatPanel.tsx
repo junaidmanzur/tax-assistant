@@ -173,9 +173,8 @@ export default function ChatPanel({ onTaxCalculation }: ChatPanelProps) {
     setMessages((m) => [...m, { sender: 'loading', text: '' }]);
 
     try {
-      // Convert current conversation to ChatMessage format
+      // Convert current conversation to ChatMessage format (don't override system prompt - let backend use its own)
       const chatMessages: ChatMessage[] = [
-        { role: 'system', content: 'You are an Australian tax assistant. Always use the calculate_tax tool for tax calculations.' },
         ...messages.map(msg => ({
           role: msg.sender === 'me' ? 'user' as const : 'assistant' as const,
           content: msg.text
