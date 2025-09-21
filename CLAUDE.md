@@ -89,3 +89,9 @@ tax-assistant/
 
 -  Commit messages should be clean and professional without any AI attribution or co-authorship notices
 -  Focus commit messages on what changed and why, not on who or what created the code
+
+## Proposed Changes Rules
+
+- Always show sketch for frontend UI/UX changes
+- Always suggest responsive UI changes
+- Show flow diagrams for proposed backend or architecture changes
