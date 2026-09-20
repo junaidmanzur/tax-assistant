@@ -64,6 +64,7 @@ interface Msg {
   sender: Sender; 
   text: string; 
   taxResult?: TaxResult;
+  suggestions?: string[];
 }
 
 // Helper function to filter out tax calculation lines from text
@@ -87,6 +88,15 @@ function filterTaxCalculationLines(text: string): string {
   });
   
   return filteredLines.join('\n').trim();
+}
+
+// Default fallback suggestions if AI doesn't provide any
+function getDefaultSuggestions(): string[] {
+  return [
+    "Calculate tax for $85,000 income",
+    "How can I optimize my tax?",
+    "What are the 2024-25 tax brackets?"
+  ];
 }
 
 // Helper function to extract tax results from response
@@ -145,6 +155,7 @@ export default function ChatPanel({ onTaxCalculation }: ChatPanelProps) {
   ]);
 
   const [draft, setDraft] = useState('');
+  const [latestSuggestions, setLatestSuggestions] = useState<string[]>(getDefaultSuggestions());
   const [isLoading, setIsLoading] = useState(false);
   const threadIdRef = useRef('default-thread');
 
@@ -162,9 +173,8 @@ export default function ChatPanel({ onTaxCalculation }: ChatPanelProps) {
     setMessages((m) => [...m, { sender: 'loading', text: '' }]);
 
     try {
-      // Convert current conversation to ChatMessage format
+      // Convert current conversation to ChatMessage format (don't override system prompt - let backend use its own)
       const chatMessages: ChatMessage[] = [
-        { role: 'system', content: 'You are an Australian tax assistant. Always use the calculate_tax tool for tax calculations.' },
         ...messages.map(msg => ({
           role: msg.sender === 'me' ? 'user' as const : 'assistant' as const,
           content: msg.text
@@ -236,39 +246,71 @@ export default function ChatPanel({ onTaxCalculation }: ChatPanelProps) {
                       const response = aiResponse || 'I\'m ready to help with your tax calculation!';
                       let taxResult = extractTaxResults(response);
                       
-                      // Remove JSON block from display (it's only for data extraction)
-                      const cleanedResponse = response
-                        .replace(/```json\s*\{[\s\S]*?\}\s*```/g, '')  // Standard JSON blocks
-                        .replace(/```\s*\{\s*[\s\S]*?\}\s*```/g, '')   // JSON blocks without 'json' label
-                        .replace(/\{\s*"taxCalculation"[\s\S]*?\}\s*$/g, '') // Bare JSON at end
-                        .trim();
-                      const formattedResponse = formatTaxResponse(cleanedResponse);
+                      // Parse JSON-only response and create human-readable text
+                      let parsedTaxData = null;
+                      let humanReadableResponse = response;
                       
-                      // First try to extract JSON data from the response
-                      let jsonTaxData = null;
                       try {
-                        // Try multiple JSON patterns
-                        const patterns = [
-                          /```json\s*(\{[\s\S]*?\})\s*```/,     // Standard JSON blocks
-                          /```\s*(\{[\s\S]*?\})\s*```/,        // JSON blocks without 'json' label
-                          /(\{\s*"taxCalculation"[\s\S]*?\})/   // Bare JSON
-                        ];
-                        
-                        let jsonMatch = null;
-                        for (const pattern of patterns) {
-                          jsonMatch = response.match(pattern);
-                          if (jsonMatch) break;
-                        }
-                        
-                        if (jsonMatch) {
-                          const jsonData = JSON.parse(jsonMatch[1]);
-                          if (jsonData.taxCalculation) {
-                            jsonTaxData = jsonData.taxCalculation;
+                        // Try to parse as direct JSON
+                        parsedTaxData = JSON.parse(response);
+                        if (parsedTaxData.taxCalculation) {
+                          const calc = parsedTaxData.taxCalculation;
+                          
+                          // Generate human-readable response from JSON data
+                          humanReadableResponse = `🧮 **Tax Calculation Results (2024-25)**\n\n`;
+                          
+                          if (calc.grossIncome && calc.totalDeductions > 0) {
+                            humanReadableResponse += `**Gross Income**: $${calc.grossIncome.toLocaleString()}\n`;
+                            humanReadableResponse += `**Total Deductions**: $${calc.totalDeductions.toLocaleString()}\n`;
+                            humanReadableResponse += `**Taxable Income**: $${calc.taxableIncome.toLocaleString()}\n\n`;
                           }
+                          
+                          humanReadableResponse += `**Base Tax**: $${calc.baseTax.toLocaleString()}\n`;
+                          humanReadableResponse += `**Medicare Levy**: $${calc.medicareLevy.toLocaleString()}\n`;
+                          humanReadableResponse += `**Medicare Levy Surcharge**: $${calc.mls.toLocaleString()}\n`;
+                          
+                          if (calc.lito > 0) {
+                            humanReadableResponse += `**Low Income Tax Offset**: -$${calc.lito.toLocaleString()}\n`;
+                          }
+                          
+                          humanReadableResponse += `**Total Tax Payable**: $${calc.totalTax.toLocaleString()}\n`;
+                          humanReadableResponse += `**Take-Home Income**: $${calc.takeHome.toLocaleString()}\n\n`;
+                          
+                          if (calc.deductionsSummary) {
+                            humanReadableResponse += `**Deductions Summary:** ${calc.deductionsSummary}\n\n`;
+                          }
+                          
+                          if (calc.assumptionsMade) {
+                            humanReadableResponse += `**Assumptions made:** ${calc.assumptionsMade}\n\n`;
+                          }
+                          
+                          if (calc.mlsExplanation) {
+                            humanReadableResponse += `**MLS Explanation:** ${calc.mlsExplanation}\n\n`;
+                          }
+                          
+                          humanReadableResponse += `Let me know if any assumptions are incorrect!`;
                         }
                       } catch (error) {
-                        console.log('Could not parse JSON tax data, falling back to text parsing');
+                        // If not JSON, treat as regular text response (backward compatibility)
+                        console.log('Response is not JSON, treating as text');
+                        
+                        // For informational responses, generate contextual suggestions
+                        if (response.toLowerCase().includes('bracket') || 
+                            response.toLowerCase().includes('definition') ||
+                            response.toLowerCase().includes('lifo') ||
+                            response.toLowerCase().includes('rate')) {
+                          setLatestSuggestions([
+                            "Calculate tax for $85,000 income",
+                            "How can I optimize my tax?",
+                            "What deductions can I claim?"
+                          ]);
+                        }
                       }
+                      
+                      const formattedResponse = formatTaxResponse(humanReadableResponse);
+                      
+                      // Use parsed JSON data if available
+                      let jsonTaxData = parsedTaxData ? parsedTaxData.taxCalculation : null;
 
                       // If tax results are extracted, notify parent component for FormPanel sync
                       if ((taxResult || jsonTaxData) && onTaxCalculation) {
@@ -346,10 +388,33 @@ export default function ChatPanel({ onTaxCalculation }: ChatPanelProps) {
                         }
                       }
                       
+                      // Convert JSON data to taxResult format for card display
+                      let finalTaxResult = taxResult;
+                      if (jsonTaxData && !taxResult) {
+                        finalTaxResult = {
+                          baseTax: jsonTaxData.baseTax,
+                          medicareLevy: jsonTaxData.medicareLevy,
+                          mls: jsonTaxData.mls,
+                          lito: jsonTaxData.lito,
+                          totalTax: jsonTaxData.totalTax,
+                          takeHome: jsonTaxData.takeHome,
+                          income: jsonTaxData.income
+                        };
+                      }
+                      
+                      // Extract AI-generated suggestions or use fallback
+                      const suggestions = parsedTaxData?.suggestedQuestions || getDefaultSuggestions();
+                      
+                      // Update latest suggestions for display above input (only if we have new ones)
+                      if (parsedTaxData?.suggestedQuestions) {
+                        setLatestSuggestions(suggestions);
+                      }
+                      
                       return [...withoutLoading, { 
                         sender: 'ai', 
                         text: formattedResponse,
-                        taxResult: taxResult || undefined
+                        taxResult: finalTaxResult || undefined,
+                        suggestions
                       }];
                     });
                     setIsLoading(false);
@@ -425,26 +490,20 @@ export default function ChatPanel({ onTaxCalculation }: ChatPanelProps) {
         ))}
       </div>
       <div className="border-t border-border p-2.5">
-        {/* Quick Action Buttons */}
-        <div className="flex gap-2 mb-3 flex-wrap">
-          <button 
-            onClick={() => setDraft("85000, single")}
-            className="px-3 py-1.5 text-sm rounded-lg border border-border bg-[#0f1117] text-muted hover:text-text hover:border-accent/40 transition-colors"
-          >
-            💼 $85k Single
-          </button>
-          <button 
-            onClick={() => setDraft("120k, married, 2 kids")}
-            className="px-3 py-1.5 text-sm rounded-lg border border-border bg-[#0f1117] text-muted hover:text-text hover:border-accent/40 transition-colors"
-          >
-            👨‍👩‍👧‍👦 $120k Family
-          </button>
-          <button 
-            onClick={() => setDraft("95000, no private health")}
-            className="px-3 py-1.5 text-sm rounded-lg border border-border bg-[#0f1117] text-muted hover:text-text hover:border-accent/40 transition-colors"
-          >
-            💰 $95k No Insurance
-          </button>
+        {/* AI-Generated Suggestions */}
+        <div className="mb-3">
+          <div className="text-xs text-muted mb-2">💡 Suggested questions:</div>
+          <div className="flex gap-2 flex-wrap">
+            {latestSuggestions.map((suggestion, idx) => (
+              <button 
+                key={idx}
+                onClick={() => setDraft(suggestion)}
+                className="px-3 py-1.5 text-sm rounded-lg border border-border bg-[#0f1117] text-muted hover:text-text hover:border-accent/40 transition-colors"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
         </div>
 
         <form onSubmit={onSend} className="flex gap-2.5">

@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 interface TaxResultCardProps {
   baseTax: number;
   medicareLevy: number;
@@ -8,22 +10,26 @@ interface TaxResultCardProps {
   income: number;
 }
 
-export default function TaxResultCard({ 
-  baseTax, 
-  medicareLevy, 
-  mls, 
+export default function TaxResultCard({
+  baseTax,
+  medicareLevy,
+  mls,
   lito,
-  totalTax, 
+  totalTax,
   takeHome,
-  income 
+  income
 }: TaxResultCardProps) {
-  const formatCurrency = (amount: number) => 
+  const [showMonthly, setShowMonthly] = useState(false);
+
+  const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-AU', {
       style: 'currency',
       currency: 'AUD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount).replace('A$', '$');
+
+  const monthlyTakeHome = takeHome / 12;
 
   return (
     <div className="rounded-xl border-2 border-accent/40 bg-[#0f1117] p-6 my-4 max-w-md">
@@ -34,7 +40,17 @@ export default function TaxResultCard({
           {formatCurrency(totalTax)} total tax
         </div>
         <div className="text-muted">
-          Take-home: {formatCurrency(takeHome)} annually
+          <span>Take-home: {formatCurrency(showMonthly ? monthlyTakeHome : takeHome)} </span>
+          <button
+            onClick={() => setShowMonthly(!showMonthly)}
+            className={`transition-colors cursor-pointer px-2 py-0.5 rounded ${
+              showMonthly
+                ? 'text-accent bg-accent/10 hover:bg-accent/15'
+                : 'text-accent bg-accent/10 hover:bg-accent/15'
+            }`}
+          >
+            {showMonthly ? 'monthly' : 'annually'}
+          </button>
         </div>
       </div>
 
